@@ -14,15 +14,20 @@ quantum-research/                 repo root
 │   ├── oscillator.py             setup() + physics helpers (energy, hamilton_rhs, build_operators, wigner_gif)
 │   ├── group_plot_style.py       group plotting standards: apply_group_style()
 │   └── output_routing.py         auto-sort saved files into figures/ data/ movies/: route_outputs()
+├── reference/                    project-wide documentation
+│   ├── PROJECT_CONTEXT.md        what the project is, conventions, how to run it
+│   └── Research_ClassicalToQuantum_ML.md   literature survey + roadmap for the ML side
 └── Assignment 1/                 one folder per assignment
-    ├── component1_classical.ipynb
-    ├── component2_quantum.ipynb
+    ├── component1_classical.ipynb    Component 1 — classical data (ML inputs)
+    ├── component2_quantum.ipynb      Component 2 — quantum data (ML targets)
+    ├── component3_ml.ipynb           Component 3 — PyTorch MLP, classical → quantum
     ├── Classical_and_Quantum_Mechanics_Study_Guide.md   companion theory guide
-    ├── Code_Walkthrough_Components_1_and_2.md           line-by-line code explanation
+    ├── Code_Walkthrough_Components_1_to_3.md           line-by-line code explanation
+    ├── Findings_and_Corrections.md   two errors found in review, and how each was caught
     ├── figures/                  saved plots (auto-created on run)
     ├── data/                     saved .npy data (auto-created on run)
     ├── movies/                   Wigner animations (auto-created on run)
-    └── slides/                   meeting deck (.pptx/.pdf), assets/, make_slide_figures.py
+    └── slides/                   meeting deck (.pptx/.pdf) + Meeting_Script.md
 ```
 
 ## Conventions
@@ -39,3 +44,12 @@ pip install -r requirements.txt
 ```
 
 Then open a notebook in an assignment folder and run Kernel → Restart and Run All.
+
+Verify the shared helpers on their own at any time:
+
+```powershell
+python shared\oscillator.py
+```
+
+It checks the classical solver against the exact solution, energy conservation, the
+Wigner color scale, and the quantum spectrum against `Eₙ = ℏω(n+½)`. It should print `PASS`.

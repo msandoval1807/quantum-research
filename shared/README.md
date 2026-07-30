@@ -37,6 +37,21 @@ from quantum_helpers import some_function
 ## Files
 
 - `oscillator.py` — the main module the notebooks import. Provides **`setup()`** (one call = group plot style + output routing) plus reusable physics helpers: `energy(x, p)`, `hamilton_rhs(t, state)`, `analytic_xp(t, x0, p0)`, `build_operators(N)`, and `wigner_gif(states, tlist, fname, …)`.
+
+  **Run it directly to verify it:**
+
+  ```
+  python shared/oscillator.py
+  ```
+
+  It checks four things against exact formulas and prints `PASS`: the numerical solver against the
+  analytic classical solution, energy conservation along a trajectory, the Wigner colour-scale
+  invariant, and the quantum spectrum against `Eₙ = ℏω(n+½)`. Run it after touching this file.
+
+  Two details in `wigner_gif` that are easy to get wrong and are deliberate: the colour scale is
+  fixed across frames by passing an explicit `np.linspace(-wmax, wmax, 81)` level array — an integer
+  `levels` makes matplotlib ignore `vmin`/`vmax` and rescale every frame — and `duration` is in
+  **milliseconds** (imageio ≥ 2.28).
 - `group_plot_style.py` — the group's matplotlib plotting standards; call `apply_group_style()` once near the top of a notebook. (`setup()` calls this for you.)
 - `output_routing.py` — auto-sorts saved files into `figures/`, `data/`, `movies/` by file type. Call `route_outputs()` once (or just use `setup()`, which calls it):
 

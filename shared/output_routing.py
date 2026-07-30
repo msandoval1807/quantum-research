@@ -20,6 +20,8 @@ Rules:
   untouched, so existing organized code keeps working.
 - The destination folders are created automatically.
 - Calling route_outputs() more than once in a session is safe (it will not double-wrap).
+- On every call it also SWEEPS any loose output files already in the current folder
+  into figures/ data/ movies/, so a Restart & Run All never leaves strays behind.
 
 This module lives in shared/ and is importable from any assignment folder via the
 quantum_research_shared.pth entry in the virtual environment. It can also simply be
@@ -56,11 +58,45 @@ def _route(name):
     return os.path.join(folder, name)
 
 
+# Only these extensions are swept up automatically. Deliberately conservative: it
+# excludes document types like .pdf/.svg/.csv/.txt that are often user files (e.g. a
+# handout PDF sitting in the folder) rather than generated outputs. Saving still routes
+# every type in _FOLDER_FOR_EXT; the sweep just won't *move* documents on its own.
+_SWEEP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".mp4", ".mov", ".webm", ".avi", ".npy", ".npz"}
+
+
+def _sweep_existing():
+    """Move any loose *generated* output files already in the current folder into their
+    destination subfolder. Runs every time route_outputs() is called, so a Restart &
+    Run All always tidies up stray figures/data/movies (e.g. saved before routing was
+    active, or by older code). Only sweeps the generated file types in _SWEEP_EXTENSIONS,
+    so it never grabs documents like a handout .pdf. A stale loose copy is removed in
+    favour of a newer routed copy; a newer loose copy replaces an older routed one.
+    """
+    import shutil
+    for name in list(os.listdir(".")):
+        if not os.path.isfile(name):
+            continue
+        if os.path.splitext(name)[1].lower() not in _SWEEP_EXTENSIONS:
+            continue                            # only sweep clearly-generated file types
+        dest = _route(name)                     # figures/ data/ movies/ prefix, or unchanged
+        if dest == name:                        # not a routed file type -> leave alone
+            continue
+        if os.path.exists(dest):
+            # keep whichever is newer; discard the other
+            if os.path.getmtime(name) <= os.path.getmtime(dest):
+                os.remove(name)                 # loose copy is stale
+                continue
+            os.remove(dest)                     # loose copy is newer -> it wins
+        shutil.move(name, dest)
+
+
 def route_outputs(folders=_DEFAULT_FOLDERS, verbose=True):
     """Create the output folders and make matplotlib/numpy/imageio saves auto-route."""
     global _PATCHED
     for d in folders:
         os.makedirs(d, exist_ok=True)
+    _sweep_existing()                            # tidy any stray loose outputs first
     if _PATCHED:
         if verbose:
             print("Output routing already active.")

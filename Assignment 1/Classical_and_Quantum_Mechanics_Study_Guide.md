@@ -1,4 +1,4 @@
-# Classical & Quantum Mechanics — Study Guide
+ # Classical & Quantum Mechanics — Study Guide
 
 **Author:** Marcos Sandoval Lucas
 **Project:** AI Design of Quantum Processors — Mondragon-Shem Quantum Group, UIC College of Engineering
@@ -6,7 +6,7 @@
 
 > **How to read this.** Each concept has three layers — **In plain words** (the intuition), **The math** (the equation), and **Decode it** (every symbol explained). The plain-words layer stands on its own if the math is unfamiliar.
 
-> **Conventions & sources.** The quantum notation follows the group's assigned text, **Essler, *Lecture Notes for Quantum Mechanics* (Oxford)** — same Hamiltonian, same ladder operators, same spectrum. Cross-references to Essler's equation and section numbers appear throughout and are collected in **Part 6**. Two notes: Essler writes the operators using a length scale **ℓ = √(ℏ/2mω)** (see §2.5), and Essler does **not** cover the **Wigner function** — that representation comes from the project handout, not the lecture notes (see §2.11). Hardware context (how this oscillator becomes a real qubit) is in **Part 7**, based on the PennyLane superconducting-qubits tutorial.
+> **Conventions & sources.** The quantum notation follows the group's assigned text, **Essler, *Lecture Notes for Quantum Mechanics* (Oxford)** — same Hamiltonian, same ladder operators, same spectrum. Cross-references to Essler's equation and section numbers appear throughout and are collected in **Part 6**. Two notes: Essler writes the operators using a length scale **ℓ = √(ℏ/2mω)** (see §2.5), and Essler does **not** cover the **Wigner function** — that representation comes from the project handout, not the lecture notes (see §2.11). Hardware context (how this oscillator becomes a real qubit) is in **Part 9**, based on the PennyLane superconducting-qubits tutorial.
 
 ---
 
@@ -193,7 +193,151 @@ For this oscillator, evaluating those derivatives gives:
 
 **The point of Task 2:** the answer is known (ellipses), so this validates the numerical pipeline while it can still be checked against the exact result. Later systems lack exact answers, so the code must be trusted here first. The trajectory data (e.g. `.npy` files) becomes ML input later.
 
+**Task 3 — The anharmonic (cosine) oscillator:** *concepts in §1.8.*
+1. Add `−V₀cos(kx)` to the potential, so `H = p²/2m + ½mω²x² − V₀cos(kx)`.
+2. Re-derive Hamilton's equations. Only one term changes: the force picks up `−V₀k sin(kx)`.
+3. Integrate orbits at several energies and overlay them. They stay **closed** but stop being ellipses.
+4. Draw a band of initial conditions inside `E_ref ± ΔE`, coloured by energy.
+
+**What to check:** at *small* `x`, `sin(kx) ≈ kx`, so the cosine just stiffens the spring — the
+effective frequency becomes `√(ω² + V₀k²/m)`, which is `√2` in natural units, not `ω = 1`. Low-energy
+orbits should therefore look near-elliptical, and the deviation should grow with energy. The period
+becoming energy-dependent is the signature of anharmonicity, and it is the whole reason a real qubit
+is addressable (§1.8, Part 9).
+
+**Task 4 — Two coupled oscillators and Poincaré maps:** *concepts in §1.9.*
+1. Couple two cosine oscillators through their **momenta**: `H = Σᵢ[pᵢ²/2m + ½mω²xᵢ² − V₀cos(kxᵢ)] + λp₁p₂`.
+2. Derive the four equations of motion. The coupling makes `ẋ₁` depend on `p₂` and vice versa.
+3. The phase space is now **4-dimensional** and cannot be drawn, so plot the four 2-D projections.
+4. Build **Poincaré maps**: record `(x₁,p₁)` each time the orbit crosses `x₂ = 0` in one direction.
+   Launch *several* trajectories per energy — one alone draws a single curve and hides the structure.
+
+**What to check, and the trap I fell into:** it is tempting to read a "scattered-looking" Poincaré
+plot as chaos. It is not evidence of anything. The quantitative test is the **Lyapunov exponent**,
+and when I measured it my system turned out to be regular at *every* energy — the opposite of what I
+had written. §1.9 has the full story, including why the intuition "more energy → more chaos" fails
+for a bounded cosine nonlinearity, and what the normal-mode decomposition (Goldstein Ch. 6) reveals
+about which term is actually doing the coupling.
+
 **Plotting standards (group):** every axis labeled with units (or "dimensionless"), every curve in the legend, a caption stating the takeaway, and a perceptually uniform colormap (`viridis` / `plasma`).
+
+---
+
+> **Tasks 3 and 4 came later.** The PI's updated handout added them after Tasks 1–2 were done.
+> They move the project from the perfect spring toward real hardware: first by bending the spring,
+> then by coupling two of them together.
+
+## 1.8 The anharmonic (cosine) oscillator — Task 3
+
+**In plain words.** A perfect spring is *harmonic*: the restoring force grows exactly in proportion to displacement, and every oscillation has the same shape and period regardless of size. A real qubit is not like that. Adding a cosine term, $-V_0\cos(kx)$, makes the force grow *non*-proportionally — the oscillator becomes **anharmonic**. The orbits stay closed loops but deform away from perfect ellipses, and the period now depends on the energy.
+
+**Why it matters.** Anharmonicity is what makes a qubit a *qubit*. In a perfectly harmonic system all energy levels are evenly spaced, so you can't address just two of them. The cosine (from the Josephson junction) spaces the levels unevenly, letting you isolate a single two-level system. Task 3 is the classical shadow of that effect.
+
+## 1.9 Coupled oscillators, Poincaré maps, and chaos — Task 4
+
+**In plain words.** Put two anharmonic oscillators together and let them exchange energy through a coupling term $\lambda p_1 p_2$. Now the motion lives in a **4-dimensional** phase space $(x_1,p_1,x_2,p_2)$, too many dimensions to see at once, so we look at 2-D *projections* and at **Poincaré maps**.
+
+### The four words I need before any of this makes sense
+
+I kept seeing "KAM tori" without knowing what any of it meant. Here is the chain, built up in order.
+
+**1. Integrable = completely predictable.** A system is **integrable** when it has as many conserved
+quantities as it has degrees of freedom. Two oscillators that never talk to each other are
+integrable: each keeps its own energy forever, so I can solve them separately and write the answer
+down. The single harmonic oscillator of Tasks 1–2 is integrable — that is exactly why it has an
+exact formula to check against. Integrable systems never behave chaotically.
+
+**2. A torus is where integrable motion lives.** Take those two independent oscillators. Each one
+just goes round and round its own loop, so each needs a single **angle** to say where it is in its
+cycle. Two angles together describe a **doughnut surface** — a *torus*. Angle one is the position
+around the ring, angle two is the position around the tube. The system's state is a point on that
+doughnut, winding around in both directions at once. Each starting energy gives its own doughnut,
+nested inside the others. That is all "the motion lies on a torus" means.
+
+**3. Incommensurate = the two rhythms never line up.** Two frequencies are **commensurate** if their
+ratio is a ratio of small whole numbers — 2:1, 3:2 — and **incommensurate** otherwise. Picture two
+runners on a circular track. If one is exactly twice as fast, they meet at the start line every lap:
+the combined motion repeats, and the path closes. If the ratio is something like $1:\sqrt2$, they
+*never* line up again, and the path winds around the doughnut forever without ever closing. That
+never-repeating-but-not-random motion is what **quasiperiodic** means, and it is what a smooth curve
+of dots on a Poincaré map is showing me.
+
+**4. The KAM theorem: what happens when you nudge it.** Real systems are not integrable — mine has
+the oscillators coupled. So the natural question is whether adding a small coupling destroys all
+that orderly doughnut motion. The answer is the **Kolmogorov–Arnold–Moser theorem** (named for the
+three mathematicians who proved it in the 1950s–60s; Goldstein §11.2). In his words, if an integrable
+system is disturbed by a perturbation, and
+
+  **(a)** the perturbation is *small*, and
+  **(b)** the unperturbed frequencies are *incommensurate*,
+
+then the motion **stays on a torus** for all but a negligible set of starting conditions. The
+doughnuts survive, slightly bent. They are called **KAM tori** for exactly that reason — the tori
+the theorem says will still be there after you nudge the system.
+
+**Why this is a big deal.** It is not obvious. You might reasonably expect any coupling to wreck the
+order eventually — and for a *large* coupling it does. KAM says small couplings do not, which is
+roughly why the solar system has stayed stable for billions of years despite the planets pulling on
+each other.
+
+**Why the two conditions matter to me.** Both are checkable in my own system. Condition (b) failing
+is the interesting case: if the two frequencies *are* commensurate, the runners keep meeting at the
+same spot, the little pushes from the coupling all add up in the same direction instead of averaging
+out, and the torus tears. That is called a **resonance**, and it is where chaos starts. My mode
+frequencies work out to a ratio of 1.363 — not close to any small whole-number ratio — so condition
+(b) holds and the tori should survive. They do. (I later tested whether hitting an exact resonance
+explains the chaos I found at strong coupling; it does not, because by then condition (a) has failed
+too. See the end of this section.)
+
+**What a Poincaré map is.** Instead of watching the full continuous motion, record the state only at the instants it crosses a chosen surface (we use $x_2=0$, crossing in one direction). This turns a tangled trajectory into a set of dots — and because the motion lives on a doughnut, slicing through it gives a *closed curve*, which is why regular motion shows up as smooth loops. The pattern of dots reveals the character of the motion:
+- **Regular / quasiperiodic motion** → the dots fall on smooth closed curves. Each curve is the slice through one surviving **KAM torus**. The system behaves predictably, almost like two independent oscillators.
+- **Chaos** → the dots scatter to fill a 2-D region (a "chaotic sea"), with no clean curve. Tiny changes in the start lead to totally different futures.
+
+**What I actually measured — my intuition was wrong.** I expected raising the energy to drive a transition to chaos. It does not. Using the **maximal Lyapunov exponent** $\lambda_{max}$ (the quantitative test — positive means chaos, zero means regular; Goldstein §11.2–11.6), at my parameters $\lambda=0.3$, $V_0=1$ I get $\lambda_{max}\approx0.004$ at $E=1$, $0.007$ at $E=12$, $0.005$ at $E=30$. All are at the $\log t/t$ convergence floor, which is what zero looks like numerically. **The motion is regular at every energy I tested**, and the Poincaré sections agree — nested curves at both energies, no chaotic sea.
+
+**Why the intuition fails here.** The nonlinearity is a *cosine*, so it is **bounded**: $|V_0\cos(kx)|\le V_0$ however large the energy gets. The harmonic term grows without limit. So raising the energy makes this system *more* nearly harmonic, i.e. closer to integrable — the opposite of the usual picture. The KAM tori survive precisely because the perturbation stays small in the sense the theorem requires.
+
+**Where the chaos actually lives.** Strengthening the *coupling* does it, not raising the energy: at $\lambda=0.8$, $V_0=8$, $E=12$ I measure $\lambda_{max}=0.11$, and at $\lambda=0.8$, $V_0=15$, $E=25$, $\lambda_{max}=0.34$ — both firmly chaotic. So the order-to-chaos transition is controlled by coupling strength and well depth. That regime, not the one I ran, is the natural stress test for classical→quantum prediction.
+
+**The lesson.** A Poincaré plot that "looks scattered" is not evidence of chaos, and one that looks regular is not proof of its absence. Lyapunov exponents are the check; the plot is the picture.
+
+### What the textbooks say to do first: normal modes
+
+Both books point the same way here. Goldstein devotes **Chapter 6** to small oscillations and the
+principal-axis transformation, and Griffiths' coupled-oscillator problem carries a footnote saying
+plainly: *start with the normal-mode coordinates you would use to decouple the classical problem.*
+I had not done that. Doing it turns out to explain the structure of my system exactly.
+
+Rotate by 45°, which is a canonical transformation:
+$$X_\pm=\frac{x_1\pm x_2}{\sqrt2},\qquad P_\pm=\frac{p_1\pm p_2}{\sqrt2}.$$
+
+The Hamiltonian becomes
+
+$$H=\frac{P_+^2}{2m_+}+\frac{P_-^2}{2m_-}+\tfrac12 m\omega^2\left(X_+^2+X_-^2\right)-2V_0\cos\!\frac{kX_+}{\sqrt2}\cos\!\frac{kX_-}{\sqrt2},
+\qquad \frac{1}{m_\pm}=\frac1m\pm\lambda.$$
+
+I checked this is **exact**, not an approximation — the two forms of `H` agree to 1e-16 on random
+phase-space points.
+
+**Three things fall out of it.**
+
+1. **The momentum coupling is not really a coupling.** It is removed entirely by the rotation; all it
+   does is give the two modes *different effective masses*. The genuine coupling — the only term that
+   makes this system non-integrable — is the **cosine cross-term**. Without the cosine, this problem
+   separates into two independent oscillators and is exactly solvable.
+2. **The mode frequencies are $\omega_\pm=\omega\sqrt{1\pm\lambda m}$.** Verified numerically to 1e-3. At my
+   $\lambda=0.3$ they are 1.140 and 0.837.
+3. **KAM's second condition becomes checkable.** Goldstein's statement of the theorem requires the
+   unperturbed frequencies to be **incommensurate**. My ratio is $\omega_+/\omega_-=1.363$ — not close to
+   any low-order rational — which is consistent with the tori I actually see surviving.
+
+**A hypothesis I tested and rejected.** Those frequency ratios hit exact low-order resonances at
+particular couplings: $\lambda=0.6$ gives exactly **2:1** and $\lambda=0.8$ exactly **3:1**. Since
+resonance is what breaks KAM, I guessed that was why $\lambda=0.8$ produced chaos. It is not — at
+$\lambda=0.5$, which is *off* resonance (ratio 1.732), the Lyapunov exponent is 0.33, just as chaotic.
+The explanation is simpler: at the deep well $V_0=8$ the cosine is no longer a *small* perturbation, so
+KAM does not apply at all and the frequency condition is beside the point. The resonance structure
+would only matter in the near-integrable regime. Worth revisiting at small $V_0$.
 
 ---
 
@@ -276,7 +420,7 @@ For this oscillator, evaluating those derivatives gives:
 - The levels are **evenly spaced**, each `ℏω` apart.
 - `n = 0` gives `E₀ = ½ℏω` ≠ 0 — the **zero-point energy**, a pure quantum effect with no classical counterpart (a classical oscillator at rest has exactly zero energy).
 - **This formula is the answer key.** In Task 1 the eigenvalues are computed numerically with `qutip` and overlaid on this exact line; they must match for low `n` — the sanity check.
-- *Essler reference:* the spectrum `Eₙ=ℏω(n+½)` is eq. 246; the zero-point energy `E₀=½ℏω` is eq. 244; the ladder actions `â|n⟩=√n|n−1⟩`, `â†|n⟩=√(n+1)|n+1⟩` are eqs. 250–251. That the *average* position oscillates at frequency ω for any state is §6.3 ("What oscillates in the quantum harmonic oscillator?").
+- *Essler reference:* the spectrum `Eₙ=ℏω(n+½)` is eq. 246; the zero-point energy `E₀=½ℏω` is eq. 244; the ladder actions `â|n⟩=√n|n−1⟩`, `â†|n⟩=√(n+1)|n+1⟩` are eqs. 250–251. That the *average* position oscillates at frequency ω is §6.3 ("What oscillates in the quantum harmonic oscillator?"). **Precisely:** because `x̂` connects only *adjacent* levels, the only Bohr frequency it can produce is `(Eₙ₊₁−Eₙ)/ℏ = ω`. So `⟨x̂⟩(t)` either oscillates at exactly ω or is identically zero — never anything else. It vanishes for any state with no adjacent-level coherence: an energy eigenstate `|n⟩`, and also e.g. `(|0⟩+|3⟩)/√2`, which I checked numerically.
 
 ## 2.7 Building it in QuTiP (infinite → finite)
 
@@ -312,17 +456,28 @@ Task 2 evolves three specific starting states, each highlighting a different fac
 *In plain words:* the system is genuinely in *two* energy levels at once. Because the two levels "tick" at different rates, they interfere, and the **average position oscillates back and forth in time** — like a classical pendulum emerging from quantum pieces. Interference made visible.
 
 **3. Coherent state `|α⟩` (a displaced Gaussian blob).**
-*In plain words:* the **most classical-like** quantum state. A compact blob that orbits the phase-space origin, holding its shape, tracing the classical ellipse almost perfectly. The bridge between the quantum and classical pictures, and the most important state for connecting to Component 1.
+*In plain words:* the **most classical-like** quantum state. A compact blob that orbits the phase-space origin, holding its shape and tracing the classical orbit **exactly** — for the harmonic oscillator, not merely to a good approximation (see §2.10). The bridge between the quantum and classical pictures, and the most important state for connecting to Component 1.
 *Decode `α` (alpha):* a complex number setting where the blob sits and how big its orbit is.
 *Essler reference:* coherent states are his **"Aside 4"** (eqs. 281–289). He defines them as eigenstates of the annihilation operator, `â|α⟩=α|α⟩` (eq. 281), shows their wavefunction is a Gaussian centred at position `2ℓα` (eq. 284) — which in natural units is `√2·Re(α)`, exactly where the code places the blob — and proves they keep their shape while orbiting (eq. 289).
 
 ## 2.10 Expectation values and Ehrenfest's theorem
 
-**In plain words.** An **expectation value** is the *average* result of many measurements — written `⟨x̂⟩(t)` and `⟨p̂⟩(t)`. Plotting `⟨p̂⟩` vs `⟨x̂⟩` over time gives a phase-space path that lays directly on top of the classical ellipse from Part 1. For the coherent state they match almost perfectly — a confirmation that **quantum averages obey classical equations of motion** (*Ehrenfest's theorem*).
+**In plain words.** An **expectation value** is the *average* result of many measurements — written `⟨x̂⟩(t)` and `⟨p̂⟩(t)`. Plotting `⟨p̂⟩` vs `⟨x̂⟩` over time gives a phase-space path that lies directly on top of the classical circle from Part 1. For the coherent state in the harmonic oscillator the two agree **exactly** (to solver and truncation error) — this is *Ehrenfest's theorem*.
+
+**What the theorem actually says — and the condition everyone drops.** The usual one-liner is "quantum averages obey classical equations of motion." That is not quite it. Ehrenfest gives (Griffiths eq. 1.38):
+
+$$\frac{d\langle \hat x\rangle}{dt}=\frac{\langle \hat p\rangle}{m},\qquad \frac{d\langle \hat p\rangle}{dt}=\Big\langle -\frac{\partial V}{\partial x}\Big\rangle.$$
+
+The second equation has the average of the **force**, `⟨−∂V/∂x⟩`. The *classical* equation would have the force **evaluated at the average position**, `−∂V/∂x(⟨x⟩)`. Those two are the same thing only when `∂V/∂x` is **linear in x** — which is to say, only for a harmonic potential.
+
+- **Harmonic:** the force is `−mω²x`, perfectly linear, so `⟨−mω²x̂⟩ = −mω²⟨x̂⟩`. The averages follow the classical path *exactly*, for any state and any packet width. That is why Component 2 Task 2 agrees so well.
+- **Anharmonic (the fluxonium):** the force is `−(E_Lφ + E_J sin(φ+φ_ext))`, and `⟨sin φ̂⟩ ≠ sin⟨φ̂⟩`. The averages now obey *no* classical equation. A quick check with a coherent state in `V = x²/2 + 0.1x⁴` gives `⟨−dV/dx⟩ = −7.21` against `−dV/dx(⟨x⟩) = −5.94` — a 21% discrepancy from one quartic term.
+
+**This is the whole explanation for my Component 2 Task 3 result.** The fluxonium packet does not lag the classical trajectory because of numerical error or because the packet is "spread out" in some vague sense — it lags because Ehrenfest's theorem *stops applying* the moment the potential is anharmonic, and the size of the failure grows with both the anharmonicity and the packet width. Since `φ_zpf = 1.41` is comparable to the width of the well, the packet samples a lot of curvature and the failure is large. The same statement explains why Component 3 has anything to learn at all: the MLP is being asked to model exactly the term that Ehrenfest throws away.
 
 **The catch (Task 2d).** Collapsing the whole fuzzy blob to a single average point **throws away** most of the quantum information — the spread, the uncertainty, the interference. The average looks classical precisely *because* averaging hides the quantum richness. Keeping that richness requires the Wigner function (next).
 
-*Essler reference:* Ehrenfest's theorem is derived in **§4.1**. The related result that ⟨x̂⟩(t) oscillates at frequency ω for *any* initial state is **§6.3**, using the position matrix element `⟨m|x̂|n⟩ = ℓ(√n δ_{m,n−1} + √(n+1) δ_{m,n+1})` (eq. 276) — precisely the off-diagonal "next-neighbor only" pattern seen in the `x̂` matrix image.
+*Essler reference:* Ehrenfest's theorem is derived in **§4.1**. The related result — that ⟨x̂⟩(t) oscillates at frequency ω whenever it is non-zero at all — is **§6.3**, using the position matrix element `⟨m|x̂|n⟩ = ℓ(√n δ_{m,n−1} + √(n+1) δ_{m,n+1})` (eq. 276) — precisely the off-diagonal "next-neighbor only" pattern seen in the `x̂` matrix image.
 
 ## 2.11 The Wigner function — the quantum picture in phase space
 
@@ -334,12 +489,36 @@ The telltale feature: **the Wigner function can go negative.** A real probabilit
 
 **What each state looks like:**
 - **Coherent state:** a single positive Gaussian bump, offset from the origin. **No negative regions** → the most classical state. It orbits the origin holding its shape.
-- **Fock state `|n⟩`:** concentric rings with `n` **negative** troughs. Strongly non-classical. A classical particle of fixed energy is a thin ellipse; the quantum Fock state is a smeared, ringed crater.
+- **Fock state `|n⟩`:** concentric rings. Going outward from the origin the sign flips `n` times, and the centre alternates as `W(0,0) ∝ (−1)ⁿ` — so `|1⟩` has a negative crater at the middle, `|2⟩` is positive at the middle with a negative ring around it. (The count of *negative regions* is therefore ⌈n/2⌉, not `n` — I had that wrong at first; see Part 5.) Strongly non-classical either way: a classical particle of fixed energy is a thin ring, the quantum Fock state is a smeared, ringed crater.
 - **Superposition:** two bumps plus a stripey pattern of **alternating positive/negative interference fringes** in between — proof of a true superposition, not a random mixture.
 
-**A special property of the harmonic oscillator:** its Wigner function evolves in time by simply **rotating rigidly** around the origin — exactly mirroring the classical flow around the ellipse, with no distortion. (This is special to the quadratic potential; most systems get messy. Another reason the oscillator is the ideal teaching system.)
+**A special property of the harmonic oscillator (checked numerically):** its Wigner function evolves in time by simply **rotating rigidly** around the origin. I verified this — evolving a lumpy asymmetric state for a quarter period and rotating the initial Wigner function by 90° give the *same array to numerical precision*, and after a full period the state returns to itself to 1e-6. The rotation — exactly mirroring the classical flow around the ellipse, with no distortion. (This is special to the quadratic potential; most systems get messy. Another reason the oscillator is the ideal teaching system.)
 
 **What Task 2 does:** use `sesolve` to evolve each state, `qutip.wigner` to compute `W(x,p)` on a grid, plot snapshots, and animate movies with a **fixed color scale** (so negative regions stay visible), using a diverging colormap like `RdBu` to contrast positive vs negative. Overlay `⟨p̂⟩` vs `⟨x̂⟩` on the classical ellipse for Task 2d.
+
+---
+
+> **Task 3 came later too**, from the same updated handout. Tasks 1–2 above are the textbook
+> oscillator, where every number has an exact formula to check against. Task 3 spends that
+> confidence on a real superconducting qubit, which has no closed-form answer.
+
+## 2.12 The fluxonium qubit — Task 3
+
+**In plain words.** The **fluxonium** is a real superconducting qubit: a Josephson junction shunted by a large inductor. Its quantum Hamiltonian,
+$$\hat H = 4E_C\,\hat n^2 + \tfrac12 E_L\hat\varphi^2 - E_J\cos(\hat\varphi+\varphi_{ext}),$$
+is the exact quantum version of the classical cosine oscillator from Task 3. The variables are **phase** $\hat\varphi$ (like position) and **charge** $\hat n$ (like momentum) — they are conjugate, so the same uncertainty principle applies.
+
+**Which coordinate — the one trap I fell into.** `scqubits` writes the potential as
+$$U(\varphi)=\tfrac12 E_L\varphi^2 - E_J\cos(\varphi+\varphi_{ext}),$$
+with the *inductive* term centred on $\varphi=0$. At half flux that puts the two wells at $\varphi\approx\pm2.85$ and makes **$\varphi=0$ the top of the barrier**. The same physics can be written $\tfrac12 E_L(\varphi-\varphi_{ext})^2 - E_J\cos\varphi$, which moves the wells to $0.29$ and $5.99$ — but that is a *different coordinate*, shifted by $\varphi_{ext}$. If I use one form for the classical trajectory and let `scqubits` use the other for the quantum state, the two are half a flux quantum apart and every comparison between them is meaningless. Rule: always take the potential from `fluxonium.potential(...)` and integrate the classical equations in that same $\varphi$.
+
+**A caveat on "quantum twin".** At **zero** flux $U=\tfrac12 E_L\varphi^2-E_J\cos\varphi$, exactly the cosine oscillator of Component 1 Task 3 with $V_0=E_J$. At **half** flux the cosine flips sign ($\cos(\varphi+\pi)=-\cos\varphi$), so the fluxonium becomes $\tfrac12 E_L\varphi^2+E_J\cos\varphi$ — a double well, where Task 3's single-well oscillator is not. The two tasks are the same *family*, not the same system.
+
+**The double well and tunneling.** At the half-flux "sweet spot" ($\varphi_{ext}=\pi$) the potential is a symmetric **double well**. The two lowest states form a near-degenerate pair (one symmetric, one antisymmetric across the barrier) — the signature of **quantum tunneling** between the wells, something with no classical analogue.
+
+**Wave packets.** We build a Gaussian **wave packet** (a coherent state) localized at a phase $\varphi_0$ and evolve it with the Schrödinger equation. Comparing its averages $\langle\hat\varphi\rangle(t),\langle\hat n\rangle(t)$ to the classical trajectory shows where the two agree (near a well bottom, where the potential is closest to harmonic) and where they diverge (up the wall and at the barrier, where it is least harmonic).
+
+**Why they diverge — the precise reason.** Not "the packet spreads," which is vague. Ehrenfest's theorem (§2.10) gives $d\langle\hat n\rangle/dt=\langle-\partial U/\partial\varphi\rangle$, and for this potential $\langle\sin\hat\varphi\rangle\neq\sin\langle\hat\varphi\rangle$. The averages therefore obey no classical equation of motion at all; the gap is the difference between those two quantities, and it grows with the anharmonicity and with how much of the potential's curvature the packet samples. With $\varphi_{zpf}=1.41$ against a well only a few radians wide, the packet samples a great deal of curvature, so the gap is large everywhere in this parameter regime — which is exactly what Component 3 measures (RMS $0.84\to1.19$ rad).
 
 ---
 
@@ -355,9 +534,82 @@ So the role of this work: generate trustworthy data on *both* sides of the class
 
 The Wigner function is what makes this plausible: it forces quantum states into the same phase-space language as classical states, so a machine can compare them feature-for-feature.
 
+
+## 3.1 Why the later tasks tie back to the goal
+
+Component 3's model learns to predict the fluxonium's quantum trajectory from the classical one. Tasks 3 and 4 build the *classical* inputs (anharmonic, possibly chaotic) and Task 3 of Component 2 builds the *quantum* targets (with tunneling). The scientific payoff is locating **where** the classical input stops predicting the quantum output — near barriers, in chaotic regions — because that boundary is where the genuinely quantum physics lives. For the machine-learning side of getting closer to this goal, see `reference/Research_ClassicalToQuantum_ML.md`.
+
 ---
 
-# PART 4 — Symbol glossary (quick reference)
+*Suggested entry point: Component 1, Task 1 — plot the energy contours and confirm nested ellipses. That single plot anchors the rest of this guide.*
+
+---
+
+# PART 4 — Component 3: the neural network (MLP), in plain words
+
+Components 1 and 2 build the data; Component 3 builds the **model** that learns from it. §0.1 explained what machine learning is in general; this part explains the specific model the professor's Task 1 asks for.
+
+## What kind of model — a multilayer perceptron (MLP)
+
+**In plain words.** An MLP is the simplest kind of neural network: a stack of layers, where each layer multiplies its input by a table of adjustable numbers (weights), adds an offset, and then bends the result through a simple non-linear kink. Stacking these lets the network turn straight-line relationships into flexible curves, so it can approximate almost any input→output map if given enough examples.
+
+**The pieces (decode the jargon):**
+- **Layer / `Linear`.** One "multiply by weights and add a bias" step: `output = W·input + b`. `W` and `b` are the numbers the training adjusts.
+- **ReLU** (*rectified linear unit*). The non-linear kink applied between layers: it keeps positive values and sets negative ones to zero (`ReLU(z) = max(0, z)`). Without a non-linearity, stacking layers would just collapse back into one straight line — ReLU is what lets the network bend.
+- **Hidden layer.** Any layer between the input and the final output. This task uses **two** hidden layers, each of width `d_h` (e.g. 128 numbers wide).
+- **Weights (parameters).** All the `W`s and `b`s together — the knobs training turns. "Training the model" = finding good values for these.
+
+For Task 1 the network is `A → hidden layer (ReLU) → hidden layer (ReLU) → B̂`.
+
+## What it is predicting — regression, not classification
+
+**In plain words.** There are two flavors of supervised learning: *classification* (pick a category — cat vs dog) and **regression** (predict continuous numbers). This task is regression: the input `A` is a whole classical trajectory written as a list of `2·N_t` numbers `[x(t₁…), p(t₁…)]`, and the target `B` is the matching quantum trajectory `[⟨x⟩(t₁…), ⟨p⟩(t₁…)]`, also `2·N_t` numbers. The network reads one vector and predicts another vector — a *vector-to-vector* map `f(A) ≈ B`.
+
+## How it learns — loss, optimizer, epochs, batches
+
+**In plain words.** Learning is just "guess, measure how wrong, nudge the weights to be less wrong, repeat."
+- **Loss — MSE (mean squared error).** The score of wrongness: take the prediction `B̂`, subtract the true `B`, square the differences, average them. Zero means perfect; training tries to make this small.
+- **Optimizer — Adam.** The rule that decides how to nudge each weight to reduce the loss. Adam is a popular, well-behaved default. The **learning rate** sets how big each nudge is.
+- **Epoch.** One full pass through all the training examples. Training runs many epochs (e.g. 150).
+- **Mini-batch.** Rather than use all examples at once, the data is fed in small groups (e.g. 32 at a time); each group gives one weight update. This is faster and helps learning.
+
+## How we know it actually learned — the train/validation split
+
+**In plain words.** The data is split **80% training / 20% validation**. The network only *learns* from the training 80%; the validation 20% is held back as an honesty check — unseen data used only to measure performance. If the training loss keeps dropping but the validation loss starts *rising*, the model is **overfitting**: memorizing the training examples instead of learning the general rule. Success looks like **both** losses falling and then leveling off together.
+
+**Early stopping, and how to read the gap.** The epoch where the validation loss bottoms out is the last epoch that bought any real generalization; training past it only tightens the fit to the training rows. Stopping there is called **early stopping**, and it is the most useful thing the validation curve tells me.
+
+A gap between the two curves is not by itself a problem — the training loss is *always* lower, because those are the rows the network was fitted on. The question is only whether the **validation** curve is still going down. While it is, keep training. When it flattens or turns up while the training curve keeps falling, the extra epochs are pure memorization, and I should cut the epochs (or shrink the network, or generate more samples).
+
+Two things follow. First, the number I quote is the **best validation MSE**, never the final training MSE — the notebook prints both, plus the epoch the best one happened at. Second, more training data moves this a lot: raising `N_s` gave a noticeably lower validation error and kept it falling for far longer than a smaller run did.
+
+One practical step: the inputs and targets are **standardized** (shifted and rescaled to roughly zero mean, unit spread) before training, purely so the optimizer converges smoothly; predictions are converted back to physical units for plotting.
+
+## How this maps onto the fluxonium task
+
+The classical input `A` comes from the **classical** cosine oscillator (Component 1, Task 3); the quantum target `B` comes from the **fluxonium** quantum simulation (Component 2, Task 3). Both use the *same* mapped parameters so each classical trajectory has a genuine quantum partner. Train the MLP on many such `(A, B)` pairs and it learns to predict the quantum motion from the cheap classical motion.
+
+> **Status note.** `component3_ml.ipynb` implements this whole pipeline on **real data** — the placeholder is gone. Component 2 Task 3 is built, so the quantum targets are genuine fluxonium `sesolve` trajectories: `scqubits` supplies the Hamiltonian, QuTiP evolves each Gaussian packet, and the classical inputs are the matching nonlinear-oscillator runs started from the same initial conditions.
+
+**Why it matters.** This is where the project's central question finally gets tested: *how far can cheap classical information predict expensive quantum behavior, and where does it break down?* The validation error, and where it grows, is the quantitative answer.
+
+---
+
+# PART 5 — Symbol glossary (quick reference)
+
+**Classical-chaos vocabulary (Task 4, §1.9):**
+
+| Term | In one line |
+|---|---|
+| **Integrable** | As many conserved quantities as degrees of freedom — completely predictable, never chaotic. Two uncoupled oscillators are integrable. |
+| **Torus** | A doughnut surface. Two independent oscillations need two angles to locate, and two angles = a point on a doughnut. Integrable motion winds around one. |
+| **Quasiperiodic** | Motion that never exactly repeats but is not random — it winds the torus forever. Shows up as a smooth closed curve of dots on a Poincaré map. |
+| **Commensurate / incommensurate** | Two frequencies whose ratio *is* / *is not* a ratio of small whole numbers. 2:1 is commensurate; 1:√2 is not. |
+| **Resonance** | A commensurate frequency ratio. The coupling's small pushes stop averaging out and add up instead, which is what tears a torus. |
+| **KAM theorem** | Kolmogorov–Arnold–Moser: nudge an integrable system with a *small* perturbation, and if its frequencies are incommensurate, most tori survive. Hence "KAM tori". |
+| **Lyapunov exponent λ_max** | How fast two nearby trajectories separate. Positive = chaos; zero = regular. The actual *test*, as opposed to eyeballing a plot. |
+| **Chaotic sea** | A region of the Poincaré map filled with scattered dots lying on no curve — where the tori have been destroyed. |
+
 
 | Symbol | Name | Plain meaning |
 |---|---|---|
@@ -391,22 +643,22 @@ The Wigner function is what makes this plausible: it forces quantum states into 
 
 ---
 
-# PART 5 — Sanity checks (the golden rule in practice)
+# PART 6 — Sanity checks (the golden rule in practice)
 
 Always verify numbers against exact formulas. The oscillator has these checks built in:
 
 1. **Energy spectrum:** numerical eigenvalues from `qutip` must equal `Eₙ = ℏω(n+½)` for low `n`. Drift at high `n` means the truncation `N` is too small.
 2. **Ground state energy:** the lowest eigenvalue must be `½ℏω`, never zero.
 3. **Even spacing:** consecutive energy levels differ by exactly `ℏω`.
-4. **Classical limit:** the coherent state's `⟨x̂⟩,⟨p̂⟩` must trace the classical ellipse (Ehrenfest). If not, the dynamics are off.
-5. **Wigner sign:** the coherent state stays positive everywhere; the Fock state `|n⟩` shows exactly `n` negative rings. A `|1⟩` with no negative region signals a problem.
+4. **Classical limit:** the coherent state's `⟨x̂⟩,⟨p̂⟩` must trace the classical orbit — a circle in natural units, an ellipse in general ones (Ehrenfest). For the *harmonic* oscillator this should be exact, not approximate; a visible gap means the dynamics are off.
+5. **Wigner sign:** the coherent state stays positive everywhere. The Fock state `|n⟩` has **`n` sign changes** going outward from the origin, and the centre alternates as `W(0,0) ∝ (−1)ⁿ` — so `|0⟩` is positive at the centre, `|1⟩` has a negative crater, `|2⟩` is positive again with a negative ring around it. (Counting *negative regions* rather than sign changes gives ⌈n/2⌉, not `n` — I had this wrong at first.) A `|1⟩` with no negative region signals a problem.
 6. **Classical trajectories:** `solve_ivp` ellipses must be closed, non-crossing, and at constant energy. Drifting energy means the solver tolerance needs tightening.
 
 ---
 
-# PART 6 — Cross-reference map to Essler's *Lecture Notes for Quantum Mechanics*
+# PART 7 — Cross-reference map to Essler's *Lecture Notes for Quantum Mechanics*
 
-The assigned text uses the **same conventions** as this guide and the notebooks. This table maps each concept to where Essler derives it.
+The assigned text uses the **same conventions** as this guide and the notebooks. This table maps each concept to where Essler derives it. **Part 8** does the same for Griffiths, the book Prof. Mondragon-Shem recommended, and gives an ordered reading path through it.
 
 | Concept | This guide | Essler notes |
 |---|---|---|
@@ -418,7 +670,7 @@ The assigned text uses the **same conventions** as this guide and the notebooks.
 | Energy spectrum `Eₙ=ℏω(n+½)` | §2.6 | eq. 246 |
 | Ladder actions `â|n⟩=√n|n−1⟩`, `â†|n⟩=√(n+1)|n+1⟩` | §2.5 | eqs. 250–251 |
 | Position matrix element `⟨m|x̂|n⟩=ℓ(√n δ_{m,n−1}+√(n+1)δ_{m,n+1})` | §2.10 | eq. 276 |
-| Why `⟨x̂⟩(t)` oscillates at ω | §2.6, §2.10 | §6.3 |
+| Why `⟨x̂⟩(t)` oscillates at ω (or vanishes) | §2.6, §2.10 | §6.3 |
 | Coherent states `â|α⟩=α|α⟩`, Gaussian at `2ℓα` | §2.9, §2.10 | Aside 4 (eqs. 281–289) |
 | Ehrenfest's theorem (averages obey classical motion) | §2.10 | §4.1 |
 | Heisenberg uncertainty, minimal-uncertainty ground state | §2.3 | §3.2, eqs. 259–261 |
@@ -429,7 +681,121 @@ The assigned text uses the **same conventions** as this guide and the notebooks.
 
 ---
 
-# PART 7 — From oscillator to qubit: the hardware connection
+> **See also.** `Findings_and_Corrections.md` in this folder records the two errors found during
+> the July review — the fluxonium coordinate convention and the chaos claim — and how each was caught.
+
+# PART 8 — Reading path through Griffiths
+
+**The book:** Griffiths & Schroeter, *Introduction to Quantum Mechanics*, **3rd edition** (Cambridge).
+Recommended by Prof. Mondragon-Shem. Essler is the group's assigned text and is terser; Griffiths is
+the one to actually *learn* from, then use Essler for the group's exact conventions.
+
+**How the two differ.** Essler goes straight to ladder operators and stays algebraic. Griffiths
+builds up from the wave function and the Schrödinger equation first, so the formalism arrives with
+motivation attached. For someone new to the subject, read Griffiths for understanding and Essler for
+notation.
+
+## The path, in order
+
+Section numbers are 3rd-edition. Difficulty is my honest estimate of a *first* pass.
+
+**Stage 1 — before anything else (Chapter 1, ~a week).**
+- **1.1 The Schrödinger Equation**, **1.2 The Statistical Interpretation** — what the wave function
+  actually *is*. This is the conceptual hurdle, not the maths. `readable`
+- **1.3 Probability**, **1.4 Normalization**, **1.5 Momentum** — where expectation values come from.
+  Read closely: `⟨x̂⟩` and `⟨p̂⟩` are exactly what Component 2 plots. `readable`
+- **1.6 The Uncertainty Principle** — why the classical point becomes a blob. `readable`
+- **Ehrenfest's theorem is Equation 1.38.** This is the single most relevant result in Chapter 1 for
+  this project: it is why the coherent state's average traces the classical orbit.
+
+**Stage 2 — the oscillator itself (Chapter 2).**
+- **2.1 Stationary States**, **2.2 The Infinite Square Well** — warm-up, and the square well is the
+  cleanest example of quantised levels. `readable`
+- **2.3.1 The Harmonic Oscillator, Algebraic Method** (pp. ~41–47) — **the most important section in
+  the book for this project.** Ladder operators, `Ĥ = ℏω(â†â + ½)`, the spectrum, the zero-point
+  energy. This is line-for-line what `component2_quantum.ipynb` Task 1 builds. `readable, do it properly`
+- **2.3.2 Analytic Method** — the same answers via Hermite polynomials and a power-series solution.
+  Mathematically heavy and *not* needed for the code. `hard — skim or skip on the first pass`
+- 2.4–2.6 (free particle, delta well, finite square well) — `optional for now`. Come back to **2.6 the
+  finite square well** later, since it is the closest simple analogue of the fluxonium's well.
+
+**Stage 3 — the formalism (Chapter 3). This is the hard one.**
+This chapter answers almost every question I wrote up in Parts 10–11 of this guide. It is also where
+the book turns abstract, so expect it to be slower than Chapters 1–2.
+- **3.1 Hilbert Space** (pp. 91–94) — what "the space of states" means. Answers my Q8. `hard`
+- **3.2 Observables** — Hermitian operators, and why observable quantities must be Hermitian.
+  Answers Q7. `moderate`
+- **3.3 Eigenfunctions of a Hermitian Operator** (p. 97) — discrete vs continuous spectra. Answers
+  Q9 and Q15. `hard`
+- **3.4 Generalized Statistical Interpretation** (p. 102) — what a measurement actually returns and
+  with what probability. Answers Q13. `moderate`
+- **3.5 The Uncertainty Principle** (p. 105) — the general proof. **3.5.2 The Minimum-Uncertainty
+  Wave Packet** (p. 108) is worth real attention: that minimum-uncertainty state *is* the coherent
+  state, and its width is the `φ_zpf = 1.41` that explains why my fluxonium packet is as wide as the
+  well. `hard, but 3.5.2 pays for itself`
+- **3.6 Vectors and Operators / Dirac Notation** (p. 117) — bras, kets, inner products, changing
+  bases. Answers Q10, Q11, Q12. `moderate — mostly notation once the idea lands`
+
+**Stage 4 — the parts that matter for the fluxonium.**
+- **Problem 3.42, "Coherent states of the harmonic oscillator"** (pp. 126–127) — *do this problem.*
+  It defines the coherent state as an eigenstate of the lowering operator, shows it minimises
+  uncertainty, and shows it "behaves quasiclassically." That is precisely the state
+  `qt.coherent(DIM, alpha)` builds in Components 2 and 3. Nothing else in the book is this directly
+  useful to my code. `moderate, and worth the time`
+- **9.2 Tunneling** (pp. 358–362, in the WKB chapter) — the mechanism behind the fluxonium's
+  0.13 E_C tunneling doublet. Read 9.1 first for context. `hard, but read 9.2 for the picture even if
+  the WKB machinery does not stick`
+
+**Stage 5 — optional, good context, not needed for the assignment.**
+- **Chapter 6, Symmetries & Conservation Laws** (new in the 3rd edition) — translation operators
+  (p. 235), conservation laws (p. 242), translations in time (p. 262). This is the quantum version
+  of the Hamiltonian/Noether structure behind Component 1. `hard, save for later`
+
+## Cross-reference: concept → this guide → both books
+
+| Concept | This guide | Essler | Griffiths (3rd ed) |
+|---|---|---|---|
+| The wave function, statistical interpretation | §2.1 | — | §1.1–1.2 |
+| Expectation values `⟨x̂⟩, ⟨p̂⟩` | §2.10 | — | §1.3–1.5 |
+| Ehrenfest's theorem | §2.10 | §4.1 | **eq. 1.38**, §1.5 |
+| Uncertainty principle | §2.3 | §3.2, eqs. 259–261 | §1.6; general proof §3.5 |
+| Quantum Hamiltonian `Ĥ = p̂²/2m + ½mω²x̂²` | §2.4 | eq. 228 | §2.3 |
+| Ladder operators, `[â,â†]=1` | §2.5 | eqs. 230–231 | **§2.3.1** (pp. 41–47) |
+| `Ĥ = ℏω(â†â+½)`, number operator | §2.5 | eqs. 233–234 | §2.3.1 |
+| Energy spectrum `Eₙ=ℏω(n+½)` | §2.6 | eq. 246 | §2.3.1 |
+| Zero-point energy `E₀=½ℏω` | §2.6 | eq. 244 | §2.3.1 |
+| Ladder actions `â|n⟩=√n|n−1⟩` | §2.5 | eqs. 250–251 | §2.3.1 |
+| Hilbert space | §2.1, Q8 | — | **§3.1** (pp. 91–94) |
+| Operators as observables, Hermiticity | §2.2, Q7 | — | §3.2 |
+| Eigenvalues, discrete vs continuous spectra | §2.2, Q9, Q15 | — | §3.3 |
+| What a measurement returns | Q13 | — | §3.4 |
+| Bra-ket / Dirac notation, inner product | Q10–Q12 | — | §3.6 (p. 117) |
+| Minimum-uncertainty wave packet | §2.9 | — | **§3.5.2** (p. 108) |
+| Coherent states | §2.9, §2.10 | Aside 4 (eqs. 281–289) | **Problem 3.42** (pp. 126–127); also p. 44 |
+| Tunneling through a barrier | §2.12 | — | **§9.2** (pp. 358–362); also pp. 68–69 |
+| Symmetry and conservation laws | §1.6 | — | Chapter 6 |
+
+## What is *not* in Griffiths
+
+Worth knowing so I do not go hunting:
+
+- **The Wigner function.** Not in Griffiths, same as Essler. The index has "Wigner, E." (the person)
+  and the **Wigner–Eckart theorem**, which is about angular-momentum selection rules and has nothing
+  to do with phase-space quasi-probability. My Wigner material comes from the project handout.
+- **Superconducting circuits, Josephson junctions, the fluxonium.** Not a Griffiths topic at all —
+  that is the PennyLane tutorial (Part 9) and the `scqubits` documentation.
+- **Classical chaos, Poincaré maps, KAM tori.** Component 1 Task 4 territory; that comes from Tong's
+  *Classical Dynamics* and Susskind, not from a quantum textbook.
+
+## If I only have a few hours
+
+Read **§2.3.1** and do **Problem 3.42**. Between them they cover the ladder operators behind
+Component 2 Task 1 and the coherent state behind Task 2 and all of Component 3 — the two pieces of
+theory my code leans on hardest.
+
+---
+
+# PART 9 — From oscillator to qubit: the hardware connection
 
 *(Based on the PennyLane tutorial "Quantum computing with superconducting qubits," assigned by the group.)*
 
@@ -447,7 +813,7 @@ This ties the project to its title, "AI Design of **Quantum Processors**." The h
 
 ---
 
-# PART 8 — Questions answered (reader Q&A)
+# PART 10 — Questions answered (reader Q&A)
 
 A running collection of specific questions that came up while reading, answered in plain words. Use it as a companion to Parts 1–2.
 
@@ -530,7 +896,7 @@ For the oscillator, the energy operator `Ĥ` has eigenvalues `Eₙ = ℏω(n+½)
 **Why it matters:** this is the core mechanism that makes quantum different from classical. Measurable quantities don't take a continuum of values; they come in a discrete *allowed list* (the eigenvalues). Finding that list for `Ĥ` is the central quantum computation of this project.
 
 
-# PART 9 — Component 2 questions answered (quantum reader Q&A)
+# PART 11 — Component 2 questions answered (quantum reader Q&A)
 
 *Questions collected while working through Component 2. Same format as Part 8: plain words first.*
 
@@ -606,7 +972,7 @@ a†|n⟩ = √(n+1) |n+1⟩      (up one rung  → energy increases by ℏω)
 a |n⟩ = √n   |n−1⟩        (down one rung → energy decreases by ℏω)
 ```
 
-Because the rungs are evenly spaced by `ℏω` (Q9), moving up exactly one rung *adds exactly one packet* `ℏω` of energy — that packet is "one quantum." The "√(n+1)" factor is just bookkeeping that keeps the states properly normalized; the key idea is the **rung change**. `a†` is "raise / add a quantum," `a` is "lower / remove a quantum." (In hardware language, one quantum = one photon in the LC circuit, §2.5 and Part 7.)
+Because the rungs are evenly spaced by `ℏω` (Q9), moving up exactly one rung *adds exactly one packet* `ℏω` of energy — that packet is "one quantum." The "√(n+1)" factor is just bookkeeping that keeps the states properly normalized; the key idea is the **rung change**. `a†` is "raise / add a quantum," `a` is "lower / remove a quantum." (In hardware language, one quantum = one photon in the LC circuit, §2.5 and Part 9.)
 
 ## Q15. Why is there a "ladder," what is the Fock basis, and how do we graph a matrix (operator)?
 
@@ -639,7 +1005,7 @@ So: same physical thing (a swinging oscillator's energy); the quantum twist is *
 
 Yes — and that sameness is the entire point of using the harmonic oscillator as the test system.
 
-Both components describe **one and the same physical object**: a harmonic oscillator (a mass on a spring; in the real project, an LC circuit, Part 7). Both compute its **total energy**, `kinetic + potential`, from the *same* Hamiltonian form `H = p²/2m + ½mω²x²`. The difference is only the **rules for `x` and `p`**:
+Both components describe **one and the same physical object**: a harmonic oscillator (a mass on a spring; in the real project, an LC circuit, Part 9). Both compute its **total energy**, `kinetic + potential`, from the *same* Hamiltonian form `H = p²/2m + ½mω²x²`. The difference is only the **rules for `x` and `p`**:
 
 | | Classical (Component 1) | Quantum (Component 2) |
 |---|---|---|
@@ -652,5 +1018,3 @@ Both components describe **one and the same physical object**: a harmonic oscill
 Because it's literally the same system measured two ways, the two answers can be lined up and checked against each other — which is the whole project: Component 1 produces the cheap *classical* description, Component 2 produces the expensive *quantum* one, and Component 3 learns to predict the quantum answer from the classical input. The oscillator is chosen precisely because "the same thing" is solvable *exactly* on both sides, giving a perfect answer key (the golden rule, Part 5).
 
 ---
-
-*Suggested entry point: Component 1, Task 1 — plot the energy contours and confirm nested ellipses. That single plot anchors the rest of this guide.*

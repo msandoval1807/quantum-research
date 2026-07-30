@@ -1,32 +1,30 @@
-# slides/ — Components 1 & 2 meeting deck
+# slides/ — meeting deck
 
-- `Components_1_2_Update.pptx` — the meeting deck (Context → Results → Open Questions).
-- `Components_1_2_Update.pdf` — PDF copy for quick viewing.
-- `assets/` — the figures shown on the slides.
-- `make_slide_figures.py` — regenerates `assets/` from the project code.
+- **`Components_1_3_Update.pptx` / `.pdf` — the deck (23 slides).** Component 1 Tasks 1–4,
+  Component 2 Tasks 1–3, and Component 3's trained classical→quantum model. Structure is
+  Context → Results → Open Questions, with full-sentence takeaway titles and one idea per slide.
+- **`Meeting_Script.md`** — speaking notes, one block per slide: the point to land, the numbers to
+  have ready, and which slides to drop if running long. Also lists the questions to expect.
+- `assets/phase_space_explainer.png` — a hand-drawn figure explaining phase space. Not notebook
+  output, not currently on a slide; kept because it is useful for explaining the project to someone
+  outside the group.
 
 ## Where the slide figures come from
 
-The figures are produced by `make_slide_figures.py`. Each block in that script is the
-**same code as the corresponding notebook cell** (`component1_classical.ipynb` /
-`component2_quantum.ipynb`) — the same `energy`/`hamilton_rhs` definitions, the same
-operator construction, the same `solve_ivp`/QuTiP calls, axis scaling, titles, colors, and
-legend positions. Plot styling uses `group_plot_style.py` (`apply_group_style`), exactly as
-the notebooks do via `setup()`.
+Every figure in the deck is the PNG that the notebook wrote, embedded **unmodified** from
+`../figures/`. Commentary lives in the slide text rather than being baked into the image.
 
-The **only** differences from the notebook figures in `../figures/` are: (1) the short
-annotation labels added for the talk, and (2) the output path (`assets/`). So every slide
-figure is the same result as its notebook counterpart and traces directly back to the
-Component 1 & 2 code.
+That is a deliberate change from how the earlier Components 1 & 2 deck worked. That deck used a
+`make_slide_figures.py` script which re-plotted each figure with talk annotations — meaning the
+repository held **two copies of the plotting code**. They drifted: when the Wigner colour-scale bug
+was fixed in `shared/oscillator.py` and `component2_quantum.ipynb`, the slide script still had the
+broken version and had to be patched separately. Embedding the notebook output directly removes that
+whole class of problem — the image on the slide is byte-for-byte what the notebook produced.
 
-## Regenerate the figures
+The old deck, its `assets/`, and `make_slide_figures.py` were removed once the 1–3 deck superseded
+them. They remain in git history at commit `9e72d54` if ever needed.
 
-With the project `.venv` active:
+## Rebuilding
 
-```
-cd "Assignment 1/slides"
-python make_slide_figures.py
-```
-
-This rewrites `assets/`. (The deck embeds those images, so rebuild/re-export the deck
-afterward if the figures change.)
+The deck embeds the current contents of `../figures/`. After re-running a notebook, the figures on
+disk change but the deck does not — it has to be rebuilt to pick them up.

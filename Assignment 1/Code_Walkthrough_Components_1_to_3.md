@@ -1,9 +1,9 @@
-# Code Walkthrough — Components 1 & 2
+# Code Walkthrough — Components 1, 2 & 3
 
 **Author:** Marcos Sandoval Lucas
 **Project:** AI Design of Quantum Processors — Mondragon-Shem Quantum Group, UIC College of Engineering
 
-This guide explains **every cell** of `component1_classical.ipynb` and `component2_quantum.ipynb` — what the text (markdown) is saying, what each line of code does, what every function means, *why* it's there, and how to read each plot. It assumes **no prior Python knowledge** and is meant to be read alongside the notebooks. It also documents the reusable code in the **`shared/` folder** that the notebooks import.
+This guide explains **every cell** of `component1_classical.ipynb`, `component2_quantum.ipynb`, and `component3_ml.ipynb` — what the text (markdown) is saying, what each line of code does, what every function means, *why* it's there, and how to read each plot. It assumes **no prior Python knowledge** and is meant to be read alongside the notebooks. It also documents the reusable code in the **`shared/` folder** that the notebooks import.
 
 > **Sources & conventions.** The quantum physics matches the group's assigned text, **Essler's *Lecture Notes for Quantum Mechanics*** (cross-references appear in the companion `Classical_and_Quantum_Mechanics_Study_Guide.md`, Part 6; the hardware connection is its Part 7). All work is in **natural units** ℏ = m = ω = 1, which makes the numbers clean (energy levels come out 0.5, 1.5, 2.5, …).
 
@@ -70,7 +70,7 @@ This is the file the notebooks import. It holds:
 - **`hamilton_rhs(t, state)`** — the right-hand side of Hamilton's equations, `[dx/dt, dp/dt] = [p/m, −mω²x]`, in the form `solve_ivp` wants.
 - **`analytic_xp(t, x0, p0)`** — the exact classical solution `x(t), p(t)`, used to check the numerical solver.
 - **`build_operators(N)`** — builds the truncated quantum operators and returns `(a, adag, x, p, H)`.
-- **`wigner_gif(states, tlist, fname, …)`** — turns a sequence of quantum states into an animated GIF of the Wigner function with a fixed color scale.
+- **`wigner_gif(states, tlist, fname, …)`** — turns a sequence of quantum states into an animated GIF of the Wigner function. The colour scale is genuinely fixed across frames via an explicit `np.linspace(-wmax, wmax, 81)` level array; passing `levels=80` with `vmin`/`vmax` does *not* work, because matplotlib ignores `vmin`/`vmax` when `levels` is an integer and rescales to each frame. Frame delay is in **milliseconds** (imageio ≥ 2.28).
 
 **An important note on what the notebooks import vs. define.** The notebooks import only `setup` (both) and `wigner_gif` (Component 2) from `oscillator`. The physics functions — `energy`, `hamilton_rhs`, the operator construction — are **written out inline in the notebook cells** so the work is visible (your PI can see the physics, not a black box). The same functions also live in `oscillator.py` as reusable helpers, available for future work (e.g. Component 3) without copy-pasting. Same math: defined inline where it's worth seeing, and kept in `shared/` where it's worth reusing.
 
@@ -81,7 +81,7 @@ This is the file the notebooks import. It holds:
 Goal: simulate a mass on a spring (the classical harmonic oscillator) and produce the energy map and motion trajectories — the *classical inputs* for the eventual machine-learning model.
 
 ## Cell 1 (markdown) — Title and overview
-States the notebook's goal (generate classical baseline data) and the two tasks. The key line is the project's rule, *"never trust a number that cannot be verified"* — which is why the harmonic oscillator is used (it has exact formulas to check against).
+States the notebook's goal (generate classical baseline data) and the four tasks — Tasks 1–2 are the perfect spring, Tasks 3–4 add the cosine nonlinearity and a second coupled oscillator. The key line is the project's rule, *"never trust a number that cannot be verified"* — which is why the harmonic oscillator is used (it has exact formulas to check against).
 
 ## Cell 2 (markdown) — Setup and conventions
 Explains **natural units** ℏ = m = ω = 1 (clean numbers) and notes a consequence: the energy contours, which are ellipses in real units, become **circles** here.
@@ -252,7 +252,7 @@ print(f"Saved {n_traj} trajectories to classical_trajectories.npy")
 - `rng = np.random.default_rng(42)` — a random generator seeded with 42 (so the "random" starts are the same every run = reproducible).
 - `for k in range(n_traj):` — repeat 12 times. Each loop picks a random start, solves the orbit, computes its energy `E0`, picks a color from `plasma` scaled by energy, plots the orbit and start dot, and appends `[time, x, p]` to `trajectories`.
 - `ScalarMappable` + `colorbar` build the energy color scale (shrunk to clear the title).
-- `np.save("classical_trajectories.npy", …)` — a **bare** `.npy` name, so output routing sends it to `data/`. This file is the classical input dataset for Component 3.
+- `np.save("classical_trajectories.npy", …)` — a **bare** `.npy` name, so output routing sends it to `data/`. This file is the classical input dataset for Component 3. The array is stacked as plain `float64` with shape `(12, 400, 3)` = (trajectory, time step, `[t, x, p]`), and an `assert` checks both. It used to be built with `dtype=object` under a "ragged" comment, but every trajectory shares the same `t_eval` grid so the stack is rectangular; the object version forced `allow_pickle=True` on every load for no reason.
 
 **How to read this plot.** Nested circles, each colored by its (conserved) starting energy. Orbits never cross (a state has a unique future) and bigger energy = bigger circle. This nested structure is the "feature space" the ML model will learn from.
 
@@ -277,7 +277,7 @@ print("PASS: energy is conserved -> the numerical pipeline is trustworthy.")
 - `assert drift < 1e-6, "..."` — the automatic check: if energy drifted too much, Python stops with that message. It passes (drift ≈ 2e-9), so the pipeline is trustworthy.
 
 ## Cell 18 (markdown) — Takeaways
-Summarizes Component 1 and names its outputs (`data/classical_trajectories.npy` and the figures), then points to Component 2.
+Summarizes **Tasks 1–2** and names their outputs (`data/classical_trajectories.npy` and the figures). It hands off to Tasks 3–4 below, not to Component 2 — the notebook continues.
 
 ---
 
@@ -510,7 +510,7 @@ plt.show()
 Explains the three shapes and why a diverging colormap is used here (the one exception to viridis, because values are signed).
 
 ## Cell 21 (markdown) — Task 2(c): animations
-Explains we'll animate each state over one period with a fixed color scale.
+Explains we'll animate each state over one period with a colour scale held fixed across frames, so a change in shape or sign is real and not a rescaling artefact.
 
 ## Cell 22 (code) — Wigner movies via the shared `wigner_gif()` helper
 ```python
@@ -582,6 +582,91 @@ Summarizes Component 2 and lists outputs (spectrum, expectation trajectories, Wi
 
 ---
 
+# NEW TASKS — added cells (Components 1 & 2)
+
+These append to the existing component notebooks. See Study Guide **§1.8–1.9** (Component 1) and **§2.12** (the fluxonium) for the plain-language concepts.
+
+## Component 1 · Task 3 — cosine (nonlinear) oscillator
+- `energy_cos`, `rhs_cos` — energy and Hamilton's equations for `H = p²/2m + ½mω²x² − V0 cos(kx)`. The only new piece vs. Task 1 is the `V0 k sin(kx)` force term (the cosine's contribution).
+- **(b)** loops over several starting energies, integrates each with `solve_ivp`, and overlays the orbits colored by energy → `fig_c1_cosine_trajectories.png`.
+- `p_from_energy` — inverts the energy formula to place a start point at a chosen `(x, E)`.
+- **(c)** draws many initial conditions inside an energy band and colors them with a `viridis` colorbar → `fig_c1_cosine_energy_band.png`.
+
+## Component 1 · Task 4 — two coupled oscillators + Poincaré maps
+- `energy_coupled`, `rhs_coupled` — energy and equations of motion for the two-oscillator system with `λ p₁p₂` coupling (state = `[x1, p1, x2, p2]`).
+- `solve_p1` — given `(x1, x2, p2)` and a target energy, solves the quadratic for `p1` so a trajectory starts on the chosen energy surface.
+- **(b)** integrates one trajectory and plots the four 2-D projections of the 4-D phase space → `fig_c1_coupled_projections.png`.
+- **(c)** overlays `(x1,p1)` and `(x2,p2)` for an energy band, colored by energy → `fig_c1_coupled_energy_band.png`.
+- **(d)** `poincare_section` — launches many trajectories at one energy and records `(x1,p1)` every time the orbit crosses `x2 = 0` **going one way** (via `solve_ivp` events) → `fig_c1_coupled_poincare.png`.
+  - *A proper Poincaré map needs several initial conditions per energy* — a single trajectory only draws one curve and hides the structure.
+  - *And it needs one consistent crossing direction.* The event uses `direction = 1`, i.e. `dx2/dt > 0`. That is **not** the same as `p2 > 0` here, because the coupling is in the momenta: `dx2/dt = p2/m + λp1`. Filtering on `p2 > 0` instead let about 5% of crossings through in the opposite direction, overlaying two different sections and smearing the curves.
+  - **What the figure actually shows.** Nested tori at *both* `E = 1` and `E = 12` — regular motion, not an order-to-chaos transition. That was checked with the maximal Lyapunov exponent (`λ_max ≈ 0.004–0.007`, i.e. zero within the `log t / t` convergence floor), not by eye. The nonlinearity is a bounded cosine while the harmonic term grows without limit, so higher energy makes this system *more* nearly integrable. Chaos does appear if the **coupling** is raised instead: `λ = 0.8, V₀ = 8, E = 12` gives `λ_max = 0.11`. See the study guide §1.9.
+
+## Component 2 · Task 3 — fluxonium
+- `scq.Fluxonium(...)` — builds the fluxonium with **scqubits**; `.hamiltonian()`, `.phi_operator()`, `.n_operator()` are wrapped as QuTiP `Qobj`s so the same objects give both the spectrum and the dynamics.
+- **Coordinate convention (the thing to get right).** `scqubits` uses `U(φ) = ½E_L φ² − E_J cos(φ + φ_ext)`, so at half flux the wells are at `φ ≈ ±2.85` and `φ = 0` is the **barrier top**. The cell computes `phi_min` by minimising `fluxonium.potential(...)` and everything downstream — the plotted curve, the classical trajectory, the packet centres, the sweep — is expressed in that same `φ`. Writing the potential as `½E_L(φ − φ_ext)² − E_J cos φ` instead is the same physics in a coordinate shifted by `φ_ext`; mixing the two silently compares a classical trajectory with a quantum state half a flux quantum away.
+- **(b)** `fluxonium.wavefunction(esys, which=j, phi_grid=...)` — the eigen-wavefunctions plotted over the potential → `fig_c2_fluxonium_spectrum.png` (a double well with a tunneling doublet).
+- `wave_packet(phi0, n0)` — a Gaussian packet = coherent state of the fluxonium's LC mode, displaced so `⟨φ⟩=phi0, ⟨n⟩=n0`.
+- `classical_traj` — the matching classical trajectory, `dφ/dt = 8E_C n` and `dn/dt = −(E_L φ + E_J sin(φ + φ_ext))`. That second term is `−dU/dφ` for **scqubits' own** potential, which is what makes this the classical limit of `H_flux` rather than a shifted copy of it. The packet starts at `phi0 = phi_min`, the bottom of a well.
+- **(d)** `qt.sesolve(H_flux, packet, tlist, e_ops=[phi_op, n_op, H_flux])` evolves the packet and returns `⟨φ̂⟩(t), ⟨n̂⟩(t), ⟨Ĥ⟩(t)`; plotted against the classical trajectory → `fig_c2_fluxonium_dynamics.png` (`⟨Ĥ⟩` conserved to 2.1e-7). The packet starts at the well minimum `phi_min ≈ 2.85` **with a charge kick `n0_kick = 0.5`** — at the minimum with `n0 = 0` the classical particle sits at an equilibrium point and never moves, which makes the comparison meaningless. The two agree for about half a period and then separate; the reason is Ehrenfest's theorem and its condition (study guide §2.10), not vague "packet spreading".
+- **(f)** sweeps `phi0` from one well, across the barrier, to the other — `{−2.85, −1.43, 0, 1.43, 2.85}` in scqubits' coordinate, same charge kick throughout → `fig_c2_fluxonium_sweep.png`. The middle panel (`phi0 = 0`, the barrier top) is the striking one: the classical point sweeps a figure-eight through both wells while the packet splits and stays put.
+
+---
+
+# COMPONENT 3 — `component3_ml.ipynb`
+
+The machine-learning notebook. It trains a PyTorch neural network to predict quantum trajectories from classical ones (Task 1: Fluxonium classical-to-quantum regression). See Study Guide **Part 4** for the plain-language explanation of every ML term used here.
+
+> **Note.** The quantum targets are now the **real fluxonium** trajectories from Component 2 Task 3: `scqubits` builds the Hamiltonian, `qt.sesolve` evolves each Gaussian packet, and the classical inputs come from the matching cosine-oscillator run. Each row of `A`/`B` is a `2·N_t` trajectory vector; the pairs are saved to `data/` as `fluxonium_pairs_A.npy` / `_B.npy`.
+
+## Cell 1–2 (markdown) — Title, goal, and the data-source note
+States the goal (predict quantum dynamics from classical dynamics) and records where each side of the data comes from: quantum targets from Component 2 Task 3 (`scqubits` + QuTiP `sesolve`), classical inputs from Component 1 Task 3, both at the same mapped parameters.
+
+## Cell 3 (code) — Imports and setup
+```python
+import torch
+import torch.nn as nn
+from torch.utils.data import TensorDataset, DataLoader
+from oscillator import setup
+setup(); torch.manual_seed(0); rng = np.random.default_rng(0)
+```
+- `torch` / `torch.nn` — the PyTorch library and its neural-network building blocks.
+- `TensorDataset`, `DataLoader` — wrap arrays as tensors and serve them in shuffled mini-batches.
+- `setup()` — the same shared helper as the other notebooks (plot style + output routing).
+- `torch.manual_seed(0)` and `default_rng(0)` — fix the random weights / initial conditions so runs are reproducible.
+
+## Cell 4–5 (markdown + code) — Shared parameters (the fluxonium mapping)
+Sets `E_C, E_J, E_L, phi_ext` and derives the matched classical parameters `m = 1/(8 E_C)`, `omega = sqrt(8 E_C E_L)`, `V0 = E_J`, `k = 1`, plus the shared time grid `tlist`. One source of truth so the classical and quantum simulations stay consistent.
+
+## Cell 6–7 (markdown + code) — Generate the paired dataset
+- `wave_packet(phi0, n0)` — the Gaussian starting state, built as a QuTiP coherent state of the fluxonium's LC mode and displaced so `⟨φ̂⟩ = phi0` and `⟨n̂⟩ = n0`.
+- `classical_sample(phi0, n0)` — integrates the classical equations (`dφ/dt = 8E_C n`, `dn/dt = −(E_L(φ−φ_ext) + E_J sin φ)`) with `solve_ivp` and returns the `[x…, p…]` vector of length `2*N_t`, where `x ≡ φ − φ_ext`. This is the classical input `A`.
+- `quantum_sample(phi0, n0)` — runs `qt.sesolve(H_flux, wave_packet(...), tlist, e_ops=[phi_op, n_op])` and returns `[⟨φ̂⟩−φ_ext …, ⟨n̂⟩ …]`. This is the **real** fluxonium target `B`; there is no placeholder any more.
+- Both start from the **same absolute** `(phi0, n0)` — the `−φ_ext` shift is applied to the *output* of each, so the pair stays aligned.
+- The loop builds `A` and `B`, each shape `(N_s, 2*N_t)`, and saves them to `data/` as `fluxonium_pairs_A.npy` / `_B.npy`.
+- The fluxonium is built once with `cutoff=80`, where Component 2 Task 3 uses `110`: this notebook runs one `sesolve` per sample, so it trades a little basis headroom for speed while staying well above the 40–60 the handout asks for.
+- `phi0` is drawn from `phi_min ± 1.0` — **inside** a well. The earlier window `(−1.5, 1.5)` looked like it sat around a well minimum, but in scqubits' coordinate it is centred on the barrier top, so every packet was launched where it splits and tunnels instead of orbiting. Sampling in the well roughly halves the classical-vs-quantum RMS error (≈2.1 → ≈1.05 rad).
+
+## Cell 8–9 (markdown + code) — Standardize, split, and define the MLP
+- Standardizes inputs/targets using statistics from the **training** rows only, then applies to all (so the validation set stays a fair test).
+- 80/20 train/validation split via a shuffled permutation.
+- `TensorDataset` + `DataLoader(batch_size=32, shuffle=True)` — mini-batch feeding.
+- `class MLP(nn.Module)` — two `nn.Linear` hidden layers with `nn.ReLU` between them and a linear output; `forward` runs the input through the stack.
+
+## Cell 10–11 (markdown + code) — Training loop
+- `nn.MSELoss()` — the mean-squared-error loss; `torch.optim.Adam(lr=1e-3)` — the optimizer.
+- Each epoch: for every mini-batch, `zero_grad()` clears old gradients, `loss.backward()` computes new ones, `optimizer.step()` nudges the weights. Then the epoch's train and validation MSE are recorded (`torch.no_grad()` = "don't track gradients, just evaluate").
+- `train_hist`, `val_hist` — the loss curves.
+
+## Cell 12–13 (code) — Results plots
+- **Loss curve** (`fig_c3_loss_curve.png`): training vs validation MSE on a log axis. Read the two against each other — while both fall, keep training; once the **validation** curve flattens and only the training curve keeps dropping, the extra epochs are memorizing the training rows. The training cell prints `Best validation MSE` and the epoch it occurred at; that epoch is where training should stop (*early stopping*), and that number — not the final training MSE — is the honest score.
+- **Prediction vs. true** (`fig_c3_prediction_vs_true.png`): for one held-out sample, un-standardizes the prediction and overlays classical input, true quantum target, and the MLP's prediction in phase space.
+
+## Cell 14 (markdown) — Takeaways
+Summarizes the pipeline (now running end-to-end on real fluxonium data) and what to explore next: layer widths, learning rate, batch size, and epochs — plus the science question of *where* the classical input stops predicting the quantum target.
+
+---
+
 # Quick reference — every function used, in one place
 
 **Your shared modules (`shared/`):**
@@ -590,7 +675,7 @@ Summarizes Component 2 and lists outputs (spectrum, expectation trajectories, Wi
 - `hamilton_rhs(t, state)` *(oscillator)* — classical equations of motion for `solve_ivp`.
 - `analytic_xp(t, x0, p0)` *(oscillator)* — exact classical `x(t), p(t)` for checking.
 - `build_operators(N)` *(oscillator)* — returns `(a, adag, x, p, H)` for an N-level oscillator.
-- `wigner_gif(states, tlist, fname, …)` *(oscillator)* — animated Wigner GIF with a fixed color scale.
+- `wigner_gif(states, tlist, fname, …)` *(oscillator)* — animated Wigner GIF with a color scale that is fixed across frames (one explicit `np.linspace(-wmax, wmax, 81)` level array, so blue/white/red mean the same thing in every frame) and a frame delay in **milliseconds**.
 - `apply_group_style()` *(group_plot_style)* — set matplotlib defaults to the group's standards.
 - `route_outputs()` *(output_routing)* — auto-sort saved files into `figures/ data/ movies/` by type.
 
@@ -604,4 +689,30 @@ Summarizes Component 2 and lists outputs (spectrum, expectation trajectories, Wi
 
 **IPython.display:** `display(...)`, `Image(filename=...)` — show the saved Wigner GIFs inline in the notebook.
 
+**PyTorch (torch / nn):** `torch.manual_seed`, `torch.tensor`, `torch.no_grad()`, `nn.Module`, `nn.Sequential`, `nn.Linear`, `nn.ReLU`, `nn.MSELoss`, `torch.optim.Adam`, `TensorDataset`, `DataLoader` — build and train the Component 3 MLP.
+
+**scqubits / QuTiP (Task 3 & Component 3):** `scq.Fluxonium(EJ, EC, EL, flux, cutoff)`, `.hamiltonian()`, `.phi_operator()`, `.n_operator()`, `.eigenvals()`, `.eigensys()`, `.wavefunction(...)`, `scq.Grid1d`; `qt.Qobj`, `qt.coherent`, `qt.sesolve(H, psi0, tlist, e_ops=[...])`, `qt.expect`.
+
 **Plain Python:** `def name(args):` … `return` (define a function); `for x in things:` (loop); `{key: value}` (dictionary); `print(...)`; `assert claim, "msg"`; `#` comment; `'''...'''` docstring.
+
+
+---
+
+## Reconciled with the code on 2026-07-29
+
+*The two errors behind most of these changes are written up in `Findings_and_Corrections.md`.*
+
+This walkthrough drifted behind the notebooks during the July audit. What changed, so the two now agree:
+
+| Area | What was stale | Now |
+|---|---|---|
+| Component 1 intro | described "the two tasks" | four tasks; Tasks 3–4 are the nonlinear and coupled extensions |
+| Trajectory saving | `dtype=object` "ragged array" | plain `float64`, shape `(12, 400, 3)`, loads without `allow_pickle` |
+| Tasks 1–2 takeaways | handed off to Component 2 mid-notebook | hands off to Tasks 3–4, which follow |
+| Poincaré section | crossings filtered on `p2 > 0` | event `direction = 1` (`dx2/dt > 0`) — the two differ when the coupling is in the momenta |
+| Poincaré result | "regular tori (low E) vs. a chaotic sea (high E)" | regular at both energies, confirmed by Lyapunov exponent; chaos needs stronger coupling, not higher energy |
+| `wigner_gif` | "fixed color scale" | explicit level array (integer `levels` ignores `vmin`/`vmax`); frame delay in milliseconds |
+| Fluxonium coordinate | `½E_L(φ−φ_ext)² − E_J cos φ` | scqubits' `½E_L φ² − E_J cos(φ+φ_ext)` throughout — see `reference/PROJECT_CONTEXT.md` §11 |
+| Fluxonium dynamics | packet at `φ₀ = π/2`, no kick | starts at the well minimum with `n0_kick = 0.5`, since the minimum at rest is an equilibrium |
+| Component 3 inputs | "the Component 1 Task 3 oscillator" | the classical limit of the *same* fluxonium Hamiltonian, same coordinate |
+| Component 3 sampling | `φ₀ ∈ (−1.5, 1.5)` | `φ_min ± 1.0` — the old window was centred on the barrier top |

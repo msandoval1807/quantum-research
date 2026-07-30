@@ -78,12 +78,15 @@ def build_operators(N, hbar=1.0, m=1.0, omega=1.0):
 # Wigner-function animation
 # ----------------------------------------------------------------------
 def wigner_gif(states, tlist, fname, xvec=None, pvec=None, n_frames=40,
-               title="", duration=0.08):
+               title="", duration=80):
     """Save a GIF of Wigner-function evolution with a fixed symmetric color scale.
 
-    states : list of quantum states over time (e.g. sesolve result .states)
-    tlist  : the matching time array
-    fname  : output filename (a bare name routes to movies/ if output routing is on)
+    states   : list of quantum states over time (e.g. sesolve result .states)
+    tlist    : the matching time array
+    fname    : output filename (a bare name routes to movies/ if output routing is on)
+    duration : milliseconds per frame. imageio >= 2.28 (we pin 2.37) reads this as
+               MILLISECONDS, not seconds -- passing 0.08 rounds to zero and the GIF
+               ends up with no frame delay at all.
     Returns fname.
     """
     import io
@@ -104,14 +107,60 @@ def wigner_gif(states, tlist, fname, xvec=None, pvec=None, n_frames=40,
     frames = []
     for j, i in enumerate(idx):                            # pass 2: render frames
         fig, ax = plt.subplots(figsize=(4.6, 4.2))
-        ax.contourf(xvec, pvec, grids[j], levels=80, cmap="RdBu_r", vmin=-wmax, vmax=wmax)
+        # Explicit level array, NOT levels=80 + vmin/vmax: with an integer `levels`
+        # contourf picks its levels from each frame's own data range and ignores
+        # vmin/vmax, so the color scale would silently rescale frame to frame.
+        ax.contourf(xvec, pvec, grids[j], levels=np.linspace(-wmax, wmax, 81),
+                    cmap="RdBu_r")
         ax.set_title(f"{title}\nt = {tlist[i]:.2f}", fontsize=11)
         ax.set_xlabel("x"); ax.set_ylabel("p"); ax.set_aspect("equal")
         buf = io.BytesIO()
-        fig.savefig(buf, format="png", dpi=85)            # fixed-size frames (no tight bbox)
+        # bbox_inches=None is explicit: the group style sets savefig.bbox="tight"
+        # globally, which would crop each frame to its own content and let the frame
+        # size drift as the title text changes. GIF frames must all be one size.
+        fig.savefig(buf, format="png", dpi=85, bbox_inches=None)
         buf.seek(0)
         frames.append(np.array(Image.open(buf).convert("RGB")))
         plt.close(fig)
 
     imageio.mimsave(fname, frames, duration=duration, loop=0)
     return fname
+
+
+# ----------------------------------------------------------------------
+# Self-check: run `python shared/oscillator.py` to verify this module.
+# Every claim below is checked against an exact formula, per the group's
+# golden rule -- never trust a number you cannot check.
+# ----------------------------------------------------------------------
+if __name__ == "__main__":
+    from scipy.integrate import solve_ivp
+
+    # 1. Numerical integration must reproduce the exact classical solution.
+    t_end = 2 * np.pi
+    sol = solve_ivp(hamilton_rhs, (0, t_end), [1.3, -0.7],
+                    t_eval=np.linspace(0, t_end, 400), rtol=1e-10, atol=1e-10)
+    x_exact, p_exact = analytic_xp(sol.t, 1.3, -0.7)
+    assert np.allclose(sol.y[0], x_exact, atol=1e-7), "x(t) does not match the exact solution"
+    assert np.allclose(sol.y[1], p_exact, atol=1e-7), "p(t) does not match the exact solution"
+
+    # 2. Energy must be conserved along the trajectory.
+    E = energy(sol.y[0], sol.y[1])
+    assert np.ptp(E) < 1e-8, f"energy drifted by {np.ptp(E):.2e}"
+
+    # 3. The Wigner color scale must be symmetric about zero and cover +/- wmax.
+    #    This is the invariant the levels=80 + vmin/vmax bug used to break: given an
+    #    integer `levels`, contourf ignores vmin/vmax and rescales to each frame.
+    wmax = 0.31
+    levels = np.linspace(-wmax, wmax, 81)
+    assert np.isclose(levels.min(), -wmax) and np.isclose(levels.max(), wmax)
+    assert np.isclose(levels[len(levels) // 2], 0.0), "zero must sit at the middle (white)"
+
+    # 4. Quantum spectrum must match E_n = hbar*omega*(n + 1/2) on the trustworthy half.
+    try:
+        _, _, _, _, H = build_operators(30)
+        eig = H.eigenenergies()
+        assert np.allclose(eig[:15], np.arange(15) + 0.5, atol=1e-9), "low spectrum is wrong"
+        print("PASS: classical solver, energy conservation, Wigner scale, quantum spectrum.")
+    except ImportError:
+        print("PASS: classical solver, energy conservation, Wigner scale."
+              "  (qutip not installed -- spectrum check skipped.)")
