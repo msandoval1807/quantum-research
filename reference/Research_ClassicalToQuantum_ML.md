@@ -60,7 +60,7 @@ A plain MLP ignores the temporal structure. Options, in increasing sophisticatio
 Injecting known physics reduces the data needed and improves generalization:
 - **Conservation penalties.** Add loss terms that keep the predicted trajectory's energy `⟨Ĥ⟩` (or the classical energy) approximately constant.
 - **Hamiltonian Neural Networks / symplectic networks** — architectures that build energy conservation and phase-space structure in by construction.
-- **Ehrenfest / correspondence prior — now well motivated.** Ehrenfest's theorem gives `d⟨p⟩/dt = ⟨−∂V/∂x⟩`, the average of the force, which equals the classical force at the average position *only for a harmonic potential*. Everything the network has to learn is that discrepancy. So train it to predict the **residual** `B − A` (the quantum correction) rather than `B` from scratch: the residual is literally the term Ehrenfest discards, which makes it both easier to learn and physically interpretable. Measured size of that residual in the current dataset: RMS ≈ 1.02 rad, rising from 0.84 near the well minimum to 1.19 at the edge of the sampled window.
+- **Ehrenfest / correspondence prior — now well motivated.** Ehrenfest's theorem gives `d⟨p⟩/dt = ⟨−∂V/∂x⟩`, the average of the force, which equals the classical force at the average position *only for a harmonic potential*. Everything the network has to learn is that discrepancy. So train it to predict the **residual** `B − A` (the quantum correction) rather than `B` from scratch: the residual is literally the term Ehrenfest discards, which makes it both easier to learn and physically interpretable. Measured size of that residual: RMS 1.067 rad in the in-well dataset, and 1.673 rad when sampling out to the barrier — where it rises from 1.04 at the well bottom to 2.48 at the barrier top (Spearman ρ=+0.86, p=8.5e-19). That rise *is* the classical→quantum breakdown, measured directly.
 
 ### 3.4 Data and sampling strategy
 - **Scale the dataset** (more samples than the current 300) and, per the *Science* 2022 result, sample across a **range of parameters** (`E_J/E_C`, `E_L/E_C`, flux) so the model learns a family, not one point.
@@ -71,15 +71,15 @@ Injecting known physics reduces the data needed and improves generalization:
 ### 3.5 Quantifying the classical→quantum breakdown (the actual science)
 This is the project's real deliverable, not just a low validation loss:
 - Plot **prediction error vs. a physical axis** — initial energy, or distance of `φ₀` from the well minimum at `φ ≈ 2.85` (the barrier sits at `φ = 0`; see `Findings_and_Corrections.md` §1 for why the coordinate matters). The error should stay low in the near-classical regime and rise where quantum effects dominate.
-- Compare against **honest baselines**: linear regression, k-nearest-neighbors, and "just copy the classical trajectory" (`B̂ = A`). The MLP must beat all three to be meaningful. The copy-classical baseline is already quantified — RMS 1.02 rad in φ — so that number is the bar to clear.
+- Compare against **honest baselines**: linear regression, k-nearest-neighbors, and "just copy the classical trajectory" (`B̂ = A`). The MLP must beat all three to be meaningful. **Measured 2026-08-13:** copy-classical 1.067, k-NN (k=1) 0.077, linear regression 0.026, MLP 0.0057 rad — the MLP clears all three, but the honest headline is the 4.5× over linear regression, not the 186× over copying. Split-to-split scatter on the MLP number is ~12%.
 - Report **relative** and **per-time-step** errors, and check the predicted trajectory's own energy drift, not just MSE.
 
 ---
 
 ## 4. Suggested staged roadmap
 
-1. **Baseline (done).** MLP on raw classical→quantum vectors, MSE, 80/20 split. Validation MSE **9.3e-4** (standardized), train/val gap 1.7×, still falling at epoch 150 — so the model is under-trained and more epochs is the cheapest next experiment.
-2. **Baselines + metrics.** Add linear-regression / nearest-neighbor / copy-classical baselines and the physical-axis error plots (§3.5). This immediately shows whether learning is happening and where it fails.
+1. **Baseline (done).** MLP on raw classical→quantum vectors, MSE, 80/20 split. Now trained to **early stopping** rather than a fixed epoch count: best validation MSE **1.47e-4** at epoch 1610, train/val gap 4.5×. The old fixed-150-epoch number (9.3e-4) described an under-trained model and was 6.4× worse.
+2. **Baselines + metrics (done, 2026-08-13).** All three baselines and the physical-axis plots are in `component3_ml.ipynb` §(e)–(g). RMS in `⟨φ̂⟩`: copy-classical 1.067, k-NN 0.077, linear regression 0.026, MLP 0.0057. The breakdown is located — error climbs 5.2× from well bottom to barrier (ρ=+0.40, p=0.0016). **Linear regression at 0.026 is the finding that should shape stage 3:** most of the in-well map is trivially linear, so the residual is where the remaining signal is.
 3. **Features + residual target.** Add physics features (§3.1) and predict the quantum *correction* `B − A` (§3.3). Expect a solid jump.
 4. **Sequence/operator model.** Swap the MLP for a 1-D CNN or FNO (§3.2); compare fairly against the MLP on the same data.
 5. **Physics-informed loss.** Add energy-conservation penalties (§3.3); check generalization to unseen energies.

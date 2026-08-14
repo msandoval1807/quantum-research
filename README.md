@@ -23,11 +23,13 @@ quantum-research/                 repo root
     ├── component3_ml.ipynb           Component 3 — PyTorch MLP, classical → quantum
     ├── Classical_and_Quantum_Mechanics_Study_Guide.md   companion theory guide
     ├── Code_Walkthrough_Components_1_to_3.md           line-by-line code explanation
-    ├── Findings_and_Corrections.md   two errors found in review, and how each was caught
+    ├── Findings_and_Corrections.md   three errors found in review, and how each was caught
+    ├── Handout_Compliance.md     every handout requirement mapped to where it is met
+    ├── handouts/                 the PI's assignment PDFs
     ├── figures/                  saved plots (auto-created on run)
     ├── data/                     saved .npy data (auto-created on run)
     ├── movies/                   Wigner animations (auto-created on run)
-    └── slides/                   meeting deck (.pptx/.pdf) + Meeting_Script.md
+    └── slides/                   meeting deck (.pptx/.pdf) + build_deck.js (regenerates it)
 ```
 
 ## Conventions

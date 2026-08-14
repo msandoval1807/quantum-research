@@ -38,14 +38,30 @@ cheap to compute       expensive to compute     predicts the expensive
 ```
 
 - **Component 1 — Classical data generation.** Simulate the oscillator with Newton's / Hamilton's equations. Energy contours, phase-space trajectories, energy conservation. Produces the ML **inputs**. **STATUS: Tasks 1–4 built and verified; re-run cleanly from a fresh kernel on 2026-07-29.** **Task 3 — Nonlinear (cosine) oscillator:** add `−V₀cos(kx)` to the potential; equations of motion, phase-space trajectories at several energies, and an energy-band set of initial conditions. **Task 4 — Two coupled oscillators:** two cosine oscillators with momentum–momentum coupling `λ p₁p₂`; derive EOM, plot the four 2-D projections of the 4-D phase space, and build **Poincaré maps** to look for regular/quasiperiodic/chaotic motion.
-- **Component 2 — Quantum data generation.** Build quantum operators in QuTiP, compute the energy spectrum (eigenvalues), solve the Schrödinger equation (`sesolve`), visualize with Wigner functions. Produces the ML **targets**. **STATUS: Tasks 1–3 built and verified; re-run cleanly on 2026-07-29 in the corrected coordinate.** **Task 3 — Fluxonium dynamics:** build the fluxonium Hamiltonian `Ĥ = 4E_C n̂² + ½E_L φ̂² − E_J cos(φ̂+φ_ext)` (scqubits' convention — see §11) with **scqubits**, get its spectrum/wavefunctions, make localized wave packets, evolve them with QuTiP `sesolve`, and overlay ⟨φ̂⟩(t),⟨n̂⟩(t) against the matched classical trajectory. Mapping: **x↔φ (no shift)**, p↔n, k=1, m=1/(8E_C), ω=√(8E_C E_L). See §11 for the coordinate convention — getting this wrong was the July 28 bug.
-- **Component 3 — ML training.** **NEW: Task 1 — Fluxonium classical-to-quantum regression.** Generate `N_s` paired trajectories: classical input `Aᵢ = [x(t₁…t_Nt), p(t₁…t_Nt)]` and quantum target `Bᵢ = [⟨x⟩(t₁…t_Nt), ⟨p⟩(t₁…t_Nt)]` (x≡φ, p≡n) from the same random initial packets. Train a **PyTorch** MLP (2 hidden layers, ReLU) `f_θ: Aᵢ ↦ B̂ᵢ` with MSE loss, Adam, 80/20 train/val split, mini-batches; report validation MSE and sweep widths/learning-rate/batch/epochs. **STATUS: built and re-run 2026-07-29 in the corrected coordinate. Validation MSE 9.3e-4 (train 5.4e-4, gap 1.7×) — a 9× improvement over the pre-fix run, and still falling at epoch 150, so the model is under-trained.**
+- **Component 2 — Quantum data generation.** Build quantum operators in QuTiP, compute the energy spectrum (eigenvalues), solve the Schrödinger equation (`sesolve`), visualize with Wigner functions. Produces the ML **targets** — specifically the expectation-value trajectories ⟨φ̂⟩(t), ⟨n̂⟩(t). The spectrum and the Wigner data are context and evidence, **not** model inputs or targets. **STATUS: Tasks 1–3 built and verified; re-run cleanly on 2026-07-29 in the corrected coordinate.** **Task 3 — Fluxonium dynamics:** build the fluxonium Hamiltonian `Ĥ = 4E_C n̂² + ½E_L φ̂² − E_J cos(φ̂+φ_ext)` (scqubits' convention — see §11) with **scqubits**, get its spectrum/wavefunctions, make localized wave packets, evolve them with QuTiP `sesolve`, and overlay ⟨φ̂⟩(t),⟨n̂⟩(t) against the matched classical trajectory. Mapping: **x↔φ (no shift)**, p↔n, k=1, m=1/(8E_C), ω=√(8E_C E_L). See §11 for the coordinate convention — getting this wrong was the July 28 bug.
+- **Component 3 — ML training.** **NEW: Task 1 — Fluxonium classical-to-quantum regression.** Generate `N_s` paired trajectories: classical input `Aᵢ = [x(t₁…t_Nt), p(t₁…t_Nt)]` and quantum target `Bᵢ = [⟨x⟩(t₁…t_Nt), ⟨p⟩(t₁…t_Nt)]` (x≡φ, p≡n) from the same random initial packets. Train a **PyTorch** MLP (2 hidden layers, ReLU) `f_θ: Aᵢ ↦ B̂ᵢ` with MSE loss, Adam, 80/20 train/val split, mini-batches; report validation MSE and sweep widths/learning-rate/batch/epochs. **STATUS: complete as of 2026-08-13.** Trained to **early stopping** on the validation minimum (best epoch 1610, val MSE **1.47e-4**, gap 4.5×) — 6.4× better than the old fixed 150 epochs. Scored against three honest baselines on the same held-out split (RMS in `⟨φ̂⟩`, rad): copy-classical 1.067, k-NN 0.077, linear regression 0.026, **MLP 0.0057**. The meaningful comparison is the 4.5× over linear regression, since inside one well the map is near-linear. Prediction error was then measured against a physical axis on a second, wider dataset spanning the well bottom to the barrier top: the MLP's error climbs **5.2×** (Spearman ρ=+0.40, p=0.0016) and the quantum correction itself climbs **2.4×** (ρ=+0.86, p=8.5e-19) — the classical→quantum breakdown, located. A narrow-window run had found no trend; that null was a sampling artifact (`Assignment 1/Findings_and_Corrections.md` §3).**
 
 ---
 
 ## 3. Repository layout
 
 Canonical repo: **`C:\Users\galli\quantum-research`** (this is the git repo — commit from here).
+**What is deliberately NOT in this repo** (it is shared with the group on GitHub, so everything here
+is something the PI can read):
+
+| Excluded | Why |
+|---|---|
+| `CLAUDE.md`, `.claude/`, `.cursor/`, copilot instructions | AI-tooling files. **Physically absent, not merely gitignored** — the `.gitignore` entries are only a backstop. |
+| `reference/WORKING_PREFERENCES.md` | How I like to be worked with — not something the group needs. |
+| `reference/Session_Context.md` | Handoff notes between working sessions. |
+| `Assignment 1/slides/Meeting_Script.md` | My speaking notes for the meeting. |
+| `Assignment 1/slides/Slide_by_Slide.md` | What each slide shows and why it is in the deck. |
+| The textbook and lecture-note PDFs | Copyrighted; cite page and equation numbers instead. |
+
+All of these live in the OneDrive folder only. Everything in the repo is mirrored to OneDrive; the
+reverse is not true. **The project's own AI/ML content is not "AI tooling"** — Component 3 is the
+research deliverable and belongs here.
+
 A **copy** of the Assignment 1 deliverables also lives in OneDrive at
 `C:\Users\galli\OneDrive\Documents\Research Internship\Quantum Research Internship\` (NOT the git repo; kept in sync manually).
 
@@ -67,19 +83,22 @@ quantum-research/
     ├── component3_ml.ipynb
     ├── Classical_and_Quantum_Mechanics_Study_Guide.md   concept guide + ML/AI primer + Q&A
     ├── Code_Walkthrough_Components_1_to_3.md           cell-by-cell code explanation
+    ├── Findings_and_Corrections.md   two errors found in review, and how each was caught
     ├── handouts/  the PI's task handouts (quantum_researcher 2.pdf, 4.pdf)
     ├── figures/   generated plots -- everything here is written by a notebook cell
-    ├── data/      classical_trajectories.npy (Component 3 inputs)
+    ├── data/      classical_trajectories.npy, fluxonium_pairs_A.npy, fluxonium_pairs_B.npy
     ├── movies/    Wigner animation GIFs (fock / superposition / coherent)
-    └── slides/    Components_1_3_Update.pptx/.pdf (23 slides, all three components),
-                    Meeting_Script.md, assets/
+    └── slides/    Components_1_3_Update.pptx/.pdf (23 slides, all three components), assets/
 ```
 
-> **Folder casing — still open.** The working tree shows `shared/` (lowercase), but Git's index still has it committed as **`Shared/`** (capital S). Windows ignores the difference, Git and GitHub do not, so a collaborator cloning on Linux or macOS gets `Shared/`. Fix it once, from the repo root, with a two-step rename (Git will not record a case-only rename in one step):
+> **Folder casing — resolved 2026-07-29.** Git had the folder committed as `Shared/` (capital S)
+> while the working tree read `shared/`. Windows ignores the difference; Git and GitHub do not, so a
+> collaborator cloning on Linux or macOS would have got `Shared/` and every path in these docs would
+> have been wrong for them. Fixed with a two-step rename — Git will not record a case-only rename in
+> one go — and the committed tree now reads `shared/` throughout.
 > ```powershell
 > git mv Shared shared_tmp
 > git mv shared_tmp shared
-> git commit -m "Normalize shared/ folder casing"
 > ```
 
 ---
@@ -160,7 +179,7 @@ Run `python shared/oscillator.py` at any time. It checks, against exact formulas
 | Check | Result |
 |---|---|
 | `solve_ivp` vs the analytic classical solution | agrees to 6.7e-9 |
-| Energy conservation over a full period | drift 1.3e-8 |
+| Energy conservation over four periods | drift 1.9e-9 |
 | Wigner colour scale symmetric about zero | invariant holds |
 | Quantum spectrum vs `Eₙ = ℏω(n+½)` | max error 5.3e-15 over the lowest 15 of N = 30 |
 

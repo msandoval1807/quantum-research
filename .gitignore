@@ -8,3 +8,7 @@ __pycache__/
 desktop.ini
 .DS_Store
 Thumbs.db
+
+# Local working notes and drafts
+Assignment 1/slides/Meeting_Script.md
+Assignment 1/slides/Slide_by_Slide.md
