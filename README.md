@@ -1,12 +1,30 @@
 # quantum-research
 
-Harmonic oscillator simulations, classical and quantum (UIC Mondragon-Shem group).
+Predicting expensive **quantum** results from cheap **classical** ones, using ordinary machine
+learning. Harmonic-oscillator and fluxonium-qubit simulations plus a PyTorch model that learns the
+map between them. (UIC, Mondragon-Shem group.)
+
+**New here? Start with [SETUP.md](SETUP.md)** — environment setup end to end, about ten minutes.
+To just read the results, you need nothing: the notebooks are committed with their outputs and
+GitHub renders them in the browser.
+
+## The project in three sentences
+
+Component 1 generates classical oscillator trajectories (the model inputs). Component 2 generates
+the quantum equivalents, including a real fluxonium qubit (the model targets). Component 3 trains a
+neural network to predict the second from the first — and the scientific question is *where*
+classical information stops predicting quantum behaviour.
+
+The harmonic oscillator is the testbed because it is exactly solvable both ways, so every number has
+an exact formula to check against. That is the working rule throughout: **never trust a numerical
+result you cannot check against something external.**
 
 ## Repository structure
 
 ```
 quantum-research/                 repo root
 ├── README.md                     this file (stays at root so GitHub displays it)
+├── SETUP.md                      environment setup, start here to run anything
 ├── requirements.txt              pinned dependencies (stays at root: `pip install -r requirements.txt`)
 ├── .gitignore
 ├── .venv/                        the project's virtual environment (not committed)
@@ -23,7 +41,7 @@ quantum-research/                 repo root
     ├── component3_ml.ipynb           Component 3 — PyTorch MLP, classical → quantum
     ├── Classical_and_Quantum_Mechanics_Study_Guide.md   companion theory guide
     ├── Code_Walkthrough_Components_1_to_3.md           line-by-line code explanation
-    ├── Findings_and_Corrections.md   three errors found in review, and how each was caught
+    ├── Findings_and_Corrections.md   errors found in review, and how each was caught
     ├── Handout_Compliance.md     every handout requirement mapped to where it is met
     ├── handouts/                 the PI's assignment PDFs
     ├── figures/                  saved plots (auto-created on run)

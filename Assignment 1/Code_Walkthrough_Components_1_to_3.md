@@ -1500,7 +1500,62 @@ The prediction plot un-standardizes one held-out sample (`B_pred = B_pred_n * B_
 multiplying and adding back exactly what standardizing divided and subtracted) and overlays the
 classical input, the true quantum target and the MLP's prediction in phase space.
 
-## 5.8 Cell (e) — The honest baselines
+> ## Where the handout stops
+>
+> `quantum_researcher 4.pdf` assigns **Component 3 = Task 1, parts (a)–(d)** and ends there
+> (p. 8 of 8). Everything from here on — walkthrough sections 5.7b through 5.10 — covers work
+> that was **not** assigned. The notebook marks the same boundary with a full-width divider, and
+> the four extras are named *Beyond the brief 1–4* rather than *(e), (f), (g)*, because the old
+> lettering read as a continuation of the handout's own sub-tasks.
+
+## 5.7b Beyond the brief 1 — the "which curve is the truth" figure
+
+This section exists because of a question asked in the meeting, and the question was a fair one.
+Component 2's fluxonium figure shows classical and quantum wildly apart; Component 3's prediction
+figure shows the prediction sitting exactly on the quantum. Read side by side those look like
+contradictory claims, and nothing on either figure said otherwise.
+
+The code is short, and almost all of the work is in three lines.
+
+```python
+gap_phys  = float(np.sqrt(((Ain[:, :N_t]    - Btrue[:, :N_t]) ** 2).mean()))
+gap_model = float(np.sqrt(((B_pred[:, :N_t] - Btrue[:, :N_t]) ** 2).mean()))
+j = int(np.argsort(rms_per)[len(rms_per) // 2])
+```
+
+- **`gap_phys`** is the RMS distance between the *classical input* and the quantum truth. It comes
+  out at **1.067 rad** — and that is not a coincidence, it is numerically identical to the
+  `copy-classical` baseline in §5.8, because they are the same quantity computed the same way. The
+  baseline is this gap as a number; panel (a) is this gap as a picture.
+- **`gap_model`** is the RMS distance between the *prediction* and the same truth: **0.0057 rad**.
+- **`j`** picks the **median** trajectory by error, via `argsort(...)[len//2]`. Using `argmin` would
+  be cherry-picking, and a reader is entitled to assume you did unless the code says otherwise.
+
+The plotting trick that makes the argument work is a single shared window:
+
+```python
+padx = 0.10 * (allx.max() - allx.min()); pady = 0.14 * (ally.max() - ally.min())
+XL = (allx.min() - padx, allx.max() + padx); YL = (ally.min() - pady, ally.max() + pady)
+...
+a.set_xlim(*XL); a.set_ylim(*YL)      # identical limits on BOTH panels
+```
+
+Limits are computed once across all three curves and applied to panel (a) and panel (b) alike. If
+matplotlib were left to autoscale, each panel would fit its own data and the two would end up at
+different zoom levels — which would destroy the comparison, because the whole argument is *these are
+the same window, look how differently they behave*.
+
+Panel (c) then plots `resid[j] * 1000`. The `* 1000` converts radians to milliradians, and it is
+doing real work: at 0.0057 rad the residual is invisible on any axis that also has to show a 1.8 rad
+orbit. Rescaling the axis is what turns "the error is asserted in the text" into "the error is
+visible in the figure", and the title states the magnification (186×) so nobody mistakes the
+zoomed panel for a different measurement.
+
+**The lesson worth keeping.** Two figures can each be individually correct and still mislead when
+placed side by side, because a figure carries no statement about what it is *not* showing. The fix
+is not a better caption — it is a figure whose axes make the comparison for the reader.
+
+## 5.8 Beyond the brief 2 — the honest baselines
 
 A validation MSE on its own means nothing: 9.3e-4 is small compared to *what*? A number becomes a
 result only when something else is measured the same way on the same data.
@@ -1580,7 +1635,7 @@ for K in (1, 3, 5, 10):
 The final table prints all four models with RMS in φ, RMS in n, the standardized MSE, and the ratio
 against copy-classical. The MLP wins at **0.0057 rad**, 186× better than copying.
 
-## 5.9 Cell (f) — Error against a physical axis
+## 5.9 Beyond the brief 3 — error against a physical axis
 
 An average error says the model works *on average*. It does not say **where** — and "where" is the
 actual scientific question.
@@ -1636,7 +1691,7 @@ The one trend that is nearly significant belongs to copy-classical — which mea
 the quantum correction itself**, not any model's skill. It grows from 0.95 to 1.16 rad, exactly as
 Ehrenfest's argument predicts. The network is simply still able to keep up with it.
 
-## 5.10 Cells (g1)–(g3) — Widening the window to the barrier
+## 5.10 Beyond the brief 4 — widening the window to the barrier (steps g1–g3)
 
 Section (f) named the experiment it needed; this section runs it. Three cells.
 

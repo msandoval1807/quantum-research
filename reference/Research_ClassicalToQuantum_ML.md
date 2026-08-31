@@ -38,6 +38,58 @@ Two results from that literature matter most for us:
 
 ---
 
+## 2b. Where to actually start reading *(added 2026-08-30)*
+
+§2 above is the theory backbone. This section is the **reading path** — what to read first, and
+why each one earns its place. Everything here is free on arXiv.
+
+**Start here if the ML side feels opaque.**
+
+**Dawid et al., *Modern applications of machine learning in quantum sciences*** (arXiv:2204.04198,
+Cambridge University Press 2025). 287 pages, 92 figures, written as a course rather than a paper —
+supervised/unsupervised learning, phase classification, quantum state representation, circuit
+optimization, all with the physics reader assumed and the ML assumed *not*. **Why it matters here:**
+it is the single best answer to "I don't know what any of this means." Read the supervised-learning
+and observable-prediction chapters; they are Component 3 with better notation.
+
+**Carleo et al., *Machine learning and the physical sciences*** (arXiv:1903.10563,
+Rev. Mod. Phys. **91**, 045002 (2019)). The standard review. Shorter and broader than Dawid; good for
+seeing where this project sits in the wider field before going deep.
+
+**Read this one for the hardware.**
+
+**Kung et al., *Automatic Characterization of Fluxonium Superconducting Qubit Parameters with Deep
+Transfer Learning*** (arXiv:2503.12099, 2025). Trains on energy spectra computed from a model
+Hamiltonian across magnetic fields and predicts **E_J, E_C and E_L** — the exact three parameters
+this project fixes at `E_J/E_C = 5`, `E_L/E_C = 0.5`. Reports 95.6% average accuracy, and degrades
+gracefully when the input spectrum is noisy or incomplete. **Why it matters here:** it is the closest
+published neighbour to Component 3 — same qubit, same parameters, ML in the loop — but it runs the
+map in the *opposite direction* (spectrum → parameters, where we do classical trajectory → quantum
+observables). Worth raising with the PI as the natural "what would a next project look like" answer,
+and as evidence the fluxonium-plus-ML pairing is an active area rather than a toy exercise.
+
+**Read this one to name the breakdown result.**
+
+The Component 3 finding — error climbing 5.2× as the packet is launched further toward the
+barrier — has an established name in the literature: the **Ehrenfest time**, the timescale on which
+a localized wave packet spreads enough to feel the nonlinearity of the potential, after which
+expectation values stop following the classical equations. See Zurek and Paz on chaotic systems
+(arXiv:nlin/0012048) and the integrable-system treatment in arXiv:1801.06389.
+
+**Why this is worth the effort:** right now the breakdown is written up as an empirical observation
+with a Spearman ρ attached. Framed as Ehrenfest-time physics it becomes a *measurement of a known
+quantity* in a new system, which is a materially stronger claim and connects directly to the
+Ehrenfest-condition argument already used on the fluxonium-dynamics slide.
+
+> **Caveat, stated because it has not been checked.** The Ehrenfest-time literature is largely built
+> around *chaotic* systems, where the timescale goes as `ln(1/ℏ)` and is set by the Lyapunov
+> exponent. Component 1 established that this system is **regular, not chaotic** (λ_max ≈ 0.005 at
+> every energy tested). The integrable-system reference is the relevant one, and whether the standard
+> scaling carries over here is an open question — not something to assert in the meeting. Ask the PI
+> rather than claim it.
+
+---
+
 ## 3. Concrete ways to improve *this* project's model
 
 Ordered roughly from cheapest/highest-value to more advanced.
@@ -108,6 +160,11 @@ Each stage is a self-contained, presentable weekly update (Context → Results �
 - *Emulating quantum dynamics with neural networks via knowledge distillation*, Frontiers in Materials (2022). [Frontiers](https://www.frontiersin.org/journals/materials/articles/10.3389/fmats.2022.1060744/full)
 - *Machine learning on quantum experimental data toward solving quantum many-body problems*, Nature Communications (2024). [Nature Communications](https://www.nature.com/articles/s41467-024-51932-3)
 - *Fourier Neural Operators for Time-Periodic Quantum Systems: Learning Floquet Hamiltonians, Observable Dynamics, and Operator Growth*, arXiv (2025). [arXiv:2509.07084](https://arxiv.org/pdf/2509.07084)
+- Dawid et al. — *Modern applications of machine learning in quantum sciences*, Cambridge University Press (2025). [arXiv:2204.04198](https://arxiv.org/abs/2204.04198) — 287-page pedagogical introduction; the "start here" text.
+- Carleo, Cranmer, Hack, Kording, et al. — *Machine learning and the physical sciences*, Rev. Mod. Phys. 91, 045002 (2019). [arXiv:1903.10563](https://arxiv.org/abs/1903.10563)
+- Kung, Liu, Lee, Hu, Chang, Chen, Wang, Lin — *Automatic Characterization of Fluxonium Superconducting Qubit Parameters with Deep Transfer Learning* (2025). [arXiv:2503.12099](https://arxiv.org/abs/2503.12099) — ML predicting E_J, E_C, E_L from fluxonium spectra; 95.6% accuracy.
+- *Scalable Parameter Design for Superconducting Quantum Circuits with Graph Neural Networks* (2024). [arXiv:2411.16354](https://arxiv.org/abs/2411.16354) — GNNs for circuit parameter design at ~870 qubits; adjacent, not central.
+- Ehrenfest-time / quantum-classical correspondence breakdown: [arXiv:nlin/0012048](https://arxiv.org/abs/nlin/0012048) (chaotic systems), [arXiv:1801.06389](https://arxiv.org/abs/1801.06389) (integrable systems — the relevant one here, since Component 1 found no chaos).
 - Background methods (widely used, for the architecture upgrades in §3.2–3.3): Fourier Neural Operator (Li et al., arXiv:2010.08895), Neural ODE (Chen et al., arXiv:1806.07366), Hamiltonian Neural Networks (Greydanus et al., arXiv:1906.01563).
 
 *Note: this is a living document. As the group's tools (scqubits, PyTorch) and the tasks evolve, add findings here or split into topic files under `reference/`.*

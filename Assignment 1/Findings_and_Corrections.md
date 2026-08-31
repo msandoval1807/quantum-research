@@ -199,7 +199,7 @@ rate to expect.
 
 ---
 
-## Three gotchas from the same session
+## Four gotchas from the same session
 
 **`bbox_inches="tight"` will happily save a 200,000-pixel image.** The wide-window figure came out
 1262 × **202,783** px (1.6 MB) because a text label was positioned using `ax.get_ylim()` *before*
@@ -233,6 +233,141 @@ on slide 16 above") were not — so half the script pointed at the wrong slides 
 `final_test.py` §3b now diffs `figures/*.png` against the filenames in `build_deck.js` in both
 directions, and there is a cross-check that prints every prose slide reference beside the title of
 the slide it actually points at. Both take seconds and neither depends on remembering.
+
+**Two curves that agree will hide one of themselves, and the fix is width, not colour.** This
+happened **twice**, in two different figures, and the second time only because the first was never
+written down.
+
+- **Component 1, single trajectory.** Numerical and analytic agree to 6.7e-9, so they sit exactly on
+  top of each other. The analytic curve was drawn in white — visible on the blue curve, invisible in
+  the legend key. Redrawing it dark grey fixed the legend and made it vanish against the data.
+- **Component 3, "which curve is the truth".** Same shape of error: the prediction (`lw=2.2`) was
+  drawn *first*, then the truth (`lw=2.6`) *on top of it*. Being both later and thicker, blue painted
+  over red completely. The panel whose entire purpose was "these two agree" showed a single curve,
+  which reads as "the prediction was not plotted."
+
+**Neither colour alone nor draw order alone is enough — the two lines must differ in WIDTH.** The
+pattern that works: the reference curve as a **thick pale band drawn first**, the comparison curve as
+a **thin dark dashed line drawn on top**. The dashes then read against the band *and* as a
+distinguishable key in the legend.
+
+```python
+a.plot(truth_x, truth_y, color="#9ecae1", lw=5.0, solid_capstyle="round", label="truth")
+a.plot(other_x, other_y, color="#c1121f", lw=1.7, dashes=(5, 4),        label="prediction")
+```
+
+**Why it kept happening:** agreement is the *result being demonstrated*, so the figure that shows it
+best is exactly the figure most likely to hide it. Any figure whose caption says two curves match
+needs this check before it ships — and a rendered look at the PNG, because the geometry is correct in
+both the broken and fixed versions. Only the pixels differ.
+
+---
+
+## Physics audit, 2026-08-30 — recomputed from first principles
+
+Every quantity below was recomputed in a scratch script that reads **nothing** from the notebooks,
+then compared against what the notebooks claim. Derivatives were taken **numerically** rather than
+by hand, after a first attempt at this audit produced four false alarms from a sign slip in a
+hand-derived `dU/dφ` — the check was wrong, not the notebook. That is worth recording on its own:
+*a verification script is code, and gets the same scepticism as the code it verifies.*
+
+| quantity | recomputed | notebook claims |
+|---|---|---|
+| `1/(2m)` vs `4E_C` | 4.000000 | exact identity |
+| `mω²` vs `E_L` | 0.500000 | exact identity |
+| well minimum | 2.85234 rad | 2.85 |
+| barrier height `U(0) − U(φ_min)` | 7.75833 E_C | 7.76 |
+| curvature sign at well / at φ=0 | + / − | minimum / barrier |
+| tunneling doublet `E₁−E₀` | 0.134432 E_C | 0.134 |
+| `E₂−E₀` | 4.619 E_C | 4.6, "factor of 34" (34.4) |
+| HO spectrum vs `ℏω(n+½)` | 3.6e-15 | 5.3e-15 |
+| harmonic solver vs exact | 1.07e-9 | 6.7e-9 |
+| energy drift, 4 periods | 1.19e-9 | 1.9e-9 |
+| cosine small-amplitude ω | 1.41418 | √2 |
+| coupled energy drift (with λp₁p₂) | 4.6e-10 | conserved |
+| Lyapunov at E≈1 / E≈12 | +0.0054 / +0.0086 | ≈0, regular at every energy |
+| `A[:,0] − B[:,0]` | 4.4e-15 rad | paired, no φ_ext offset |
+| copy-classical gap from raw data | 1.0724 rad | 1.067 |
+
+All 16 display equations were checked by hand against the handout: Hamilton's equations, the cosine
+force `−(mω²x + V₀k sin kx)`, the coupled `ẋᵢ = pᵢ/m + λpⱼ` with the coupling correctly absent from
+`ṗᵢ`, the ladder definitions of `x̂` and `p̂`, `Eₙ = ℏω(n+½)`, the scqubits fluxonium Hamiltonian, the
+parameter map, and the MLP's three layers. No errors.
+
+**Two things the audit turned up that were not physics.** `	frac` appears 34 times in notebook
+markdown (fine — MathJax) and **zero** times in any string that reaches matplotlib (where it would
+raise); that separation is now checked rather than assumed. And Jupyter had left a two-month-old
+checkpoint copy of a working draft under `.ipynb_checkpoints/`, long superseded by the live file and
+quietly diverging from it. **Checkpoint directories are worth scanning whenever files move or get
+renamed** — Jupyter writes those copies without being asked, they are ignored by git so they never
+show up in `git status`, and a stale duplicate of a document is a trap for the next reader.
+
+---
+
+## Deep verification, 2026-08-30 — sources, and a sharper statement of the handout error
+
+Everything below was checked against the textbooks themselves, the installed library source, and
+the published literature — not against this project's own earlier notes.
+
+### The citations hold
+
+The PDF-to-book page offset for Griffiths is **+18**, pinned by 80 printed folios with 80 agreeing.
+All ten cited locations land where the guide says: 2.3.1 (p.40), 3.1 (p.93), 3.2 (p.95), 3.3 (p.97),
+3.4 (p.103), 3.5 (p.105), 3.5.2 (p.108), 3.6 (p.113), Problem 3.42 (p.126), 9.2 Tunneling (p.358).
+One internal inconsistency was found and fixed: the guide gave 2.3.1 as both "pp. 40-47" and
+"pp. 41-47". Section 2.3.2 begins on p.48, so **40-47** is right.
+
+Every Essler equation number checks out verbatim: (228) the oscillator Hamiltonian, (230) the ladder
+operators, (231) `[a,a-dag] = 1`, (233) `H = hbar*w*(a-dag*a + 1/2)`, (234) `N = a-dag*a`,
+(246) `E_n = hbar*w*(n + 1/2)`, (259)-(261) the ground-state expectation values and `dx*dp = hbar/2`.
+Essler (259) also settles the operator convention: he writes `<0|x|0> = sqrt(hbar/2mw)<0|a+a-dag|0>`
+and `<0|p|0> = -i*sqrt(m*hbar*w/2)<0|a-a-dag|0>` — **identical to the definitions the notebook uses**.
+
+### The handout error, stated precisely
+
+Earlier notes said "`V0 <-> E_J` flips sign at half flux". That is true but understates it. The real
+problem is that **the handout's classical form cannot be made to match at any nonzero flux, under any
+single change of variable.**
+
+The handout gives the classical Hamiltonian as `H = p^2/2m + 0.5*m*w^2*x^2 - V0*cos(k x)`, in which
+**both** terms are centred on `x = 0`. The fluxonium is not like that. Its harmonic term is centred on
+`phi = 0` while its cosine is displaced by `phi_ext`:
+
+    U(phi) = 0.5*E_L*phi^2 - E_J*cos(phi + phi_ext)          <- installed scqubits source, verbatim
+
+Follow the handout's own substitution `x = phi - phi_ext` and the cosine lines up (`cos(x + 2*pi) =
+cos(x)`, so `V0 = +E_J`) but the harmonic term becomes `0.5*E_L*(x + pi)^2` — centred at `x = -pi`.
+Measured over `x` in [-6, 6] that mapping is wrong by **11.89 E_C**. Keep `x = phi` instead and the
+harmonic term is exact while the cosine needs `V0 = -E_J`; that reproduces the true potential to
+**0.0000 E_C**, and is what the notebooks do.
+
+    handout's substitution, V0 = +E_J : max error 11.89 E_C
+    notebook's x = phi,     V0 = -E_J : max error  0.0000 E_C
+    the same handout mapping at phi_ext = 0 : max error 0.0000 E_C
+
+So the handout's mapping is exact **only at zero flux**, and the recommended operating point is half
+flux. This also explains finding #1: the two coordinate conventions on p.7/p.8(a) versus p.8(b) are
+not independent slips, they are two symptoms of this one thing.
+
+**The literature agrees.** Fluxonium papers carry two conventions — flux inside the cosine
+(`- E_J*cos(phi - phi_e)`, what scqubits uses) or flux inside the inductive term
+(`0.5*E_L*(phi + phi_e)^2 - E_J*cos(phi)`). The handout's form has the flux in *neither*, which is
+why it only works at `phi_ext = 0`. Published descriptions of the half-flux sweet spot note it
+gives "the **+ sign** in front of the Josephson term" — independent confirmation of `V0 = -E_J`.
+
+### A trap that is not live yet, but will be
+
+The scqubits **documentation** writes the potential with `cos(phi - phi_ext)`; the **installed v4.3.1
+source** computes `cos(phi + 2*pi*flux)`. At half flux these coincide exactly, because
+`cos(phi + pi) = cos(phi - pi)` — which is why nothing here is affected. Off half flux they do not:
+
+    flux = 0.50 : identical
+    flux = 0.40 : differ by 5.88 E_C
+    flux = 0.25 : differ by 10.00 E_C
+
+Checked against the library: at `flux = 0.30`, `Fluxonium.potential()` matches the `+` form to 0.00
+and the `-` form to 9.51 E_C. **The roadmap item "sweep flux" walks straight into this.** Take the
+potential from `fluxonium.potential(...)` rather than retyping either form.
 
 ---
 

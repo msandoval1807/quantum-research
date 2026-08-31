@@ -704,7 +704,7 @@ to (a squared-`x` term) plus (a squared-`p` term) is the equation of an ellipse 
 the circle `x² + p² = r²`, just stretched differently on each axis. In natural units `m = ω = 1` it
 becomes `x² + p² = 2E`, a perfect **circle** of radius `√(2E)`, which is why the plot shows circles.
 
-![Why the orbit is an ellipse: the energy contour map (left) and one orbit looping around its ring (right)](figures/phase_space_explainer.png)
+![Why the orbit is an ellipse: the energy contour map (left) and one orbit looping around its ring (right)](slides/assets/phase_space_explainer.png)
 
 *The left panel is the Task 1 contour plot (every ring is one energy — all possible orbits); the
 right is the Task 2 trajectory (the dot stuck on one ring, looping around it). "Freezing the energy"
@@ -1842,6 +1842,46 @@ For the machine-learning research context, see `reference/Research_ClassicalToQu
 
 ---
 
+### Why "the model is accurate" and "classical differs from quantum" are both true
+
+This trips people up, and it tripped up the group meeting, so it is worth stating carefully.
+
+Three different curves get drawn in this project, and they are **not** interchangeable:
+
+| symbol | what it is | where it comes from |
+|---|---|---|
+| `A` | the **classical** trajectory | solving Newton's equations for the matched oscillator |
+| `B` | the **quantum** trajectory, $\langle\hat\varphi\rangle(t)$ and $\langle\hat n\rangle(t)$ | solving the **Schrödinger equation** |
+| $\hat B$ | the network's **prediction** of `B` | the trained MLP, given `A` |
+
+`B` is the truth. It is the expensive calculation the project is trying to avoid repeating, and it
+never involves the network — which is exactly why the network's score against it means anything.
+
+Now the two statements that sound contradictory:
+
+- **"Classical and quantum disagree."** That is the distance from `A` to `B`, and it is **1.067 rad**
+  — large, obvious, and the whole reason the project exists. Component 2's fluxonium figures are
+  pictures of this gap.
+- **"The model is accurate."** That is the distance from $\hat B$ to `B`, and it is **0.0057 rad**
+  — 186 times smaller. Component 3's prediction figure is a picture of *that* gap.
+
+Both are measurements of the same truth `B`, against two different things. There is no contradiction,
+because they were never measuring the same distance.
+
+**The check that makes this concrete.** Ask what would happen if the network simply passed its input
+through — if it output `A` and called it a prediction. Then its error would be exactly the first
+number, 1.067 rad. That is what the `copy-classical` baseline is, and it is why the baseline is not
+bookkeeping: it is the proof that the network is doing something other than copying. Scoring 0.0057
+instead of 1.067 is the entire result.
+
+**And the reason the accurate figure looks *perfect* rather than merely good.** 0.0057 rad against an
+orbit nearly 2 rad across is under half a percent — thinner than the line used to draw it. An error
+can be real, structured, and still invisible at the scale of the physics. That is why the notebook
+plots the residual separately on an axis 186× finer: *a gap you cannot see is indistinguishable from
+a gap that is not there*, and telling those two apart is the whole question.
+
+---
+
 # PART 6 — How it all connects
 
 The full arc:
@@ -2086,7 +2126,7 @@ This chapter is the textbook version of Part 3 and §4.1–4.3 of this guide.
 | Ehrenfest's theorem | §4.11 | §4.1 | **eq. 1.38**, §1.5 |
 | Uncertainty principle | §4.4 | §3.2, eqs. 259–261 | §1.6; general proof §3.5 |
 | Quantum Hamiltonian | §4.5 | eq. 228 | §2.3 |
-| Ladder operators, `[â,â†]=1` | §4.6 | eqs. 230–231 | **§2.3.1** (pp. 41–47) |
+| Ladder operators, `[â,â†]=1` | §4.6 | eqs. 230–231 | **§2.3.1** (pp. 40–47) |
 | `Ĥ = ℏω(â†â+½)`, number operator | §4.6 | eqs. 233–234 | §2.3.1 |
 | Energy spectrum `Eₙ=ℏω(n+½)` | §4.7 | eq. 246 | **eq. 2.62** (§2.3.1) |
 | Zero-point energy `E₀=½ℏω` | §4.7 | eq. 244 | **eq. 2.61** (§2.3.1) |

@@ -1,6 +1,7 @@
 # Handout compliance — every requirement, and where it is met
 
-*Checked against `handouts/quantum_researcher 4.pdf` (8 pages) on 2026-08-13.*
+*Checked against `handouts/quantum_researcher 4.pdf` (8 pages) on 2026-08-13; re-verified end to end on 2026-08-30.*
+*The 2026-08-30 pass extracted all **30 lettered sub-tasks** straight from the PDF and checked each against the rendered notebooks: 30/30 have a visible header and 30/30 have their deliverable on disk. `quantum_researcher 2.pdf` (6 pages, 2026-06-11) is fully superseded — every sub-task in it also appears in v4.*
 *Companion to `Code_Walkthrough_Components_1_to_3.md` (what each cell does) and
 `Findings_and_Corrections.md` (the errors found along the way).*
 
@@ -115,9 +116,22 @@ the 80 is verified against 110 across the full sampling window — they agree to
 | (d) | **"Explore hidden widths d₁,d₂ together with learning rate, mini-batch size, and epochs"** | **[added 2026-08-13]** widths {64,128,256} × lr {3e-4,1e-3,3e-3} grid, then batch {16,32,64} at the best cell. Epoch count is chosen by early stopping rather than swept by hand |
 | (d) | Report validation MSE; optionally relative or component-wise errors | best validation MSE reported; component-wise RMS in `⟨φ̂⟩` and `⟨n̂⟩` reported separately for all four models |
 
-*Beyond the brief:* three baselines (copy-classical, k-NN, linear regression) scored on the same
-split, and prediction error measured against a physical axis on two datasets — which is what turns
-the loss number into a result.
+**The handout ends at part (d)** — `quantum_researcher 4.pdf` is 8 pages and Task 1(d) is the last
+thing on page 8. Everything in the table above is assigned; everything below is not.
+
+*Beyond the brief*, and labelled as such in the notebook so the boundary is unmissable:
+
+| | | why it was added |
+|---|---|---|
+| **1** | Which curve is the truth? | the (d) prediction figure and Component 2's figures look contradictory; they measure different gaps against the same truth |
+| **2** | Honest baselines | copy-classical, k-NN and linear regression on the same split — what turns a loss number into a result |
+| **3** | Error against a physical axis | asks *where* the map fails, not just how much |
+| **4** | Widening the window | Beyond the brief 3's null was a sampling limit; widening the window makes the breakdown appear |
+
+> **Presentation note.** The notebook carries a full-width **"end of the assigned work"** divider
+> immediately after part (d), and the extras were renamed from *(e), (f), (g)* to *Beyond the brief
+> 1–4*. The old lettering continued the handout's own sequence and so implied those sections had
+> been assigned. They had not.
 
 ---
 
@@ -136,7 +150,7 @@ the loss number into a result.
 | **Annotate key features directly on the figures** | **[added 2026-08-13]** — see the deviation note below |
 | Slides: one idea per slide, full-sentence takeaway titles | Yes, all 29 |
 | Slides: Context → Results → Open questions | Slides 2, 3–27, 28–29 |
-| Slides: every sub-task with a figure appears in the deck | Yes — 21 of 21 figures used |
+| Slides: every sub-task with a figure appears in the deck | 21 of 22 — one deliberate exception, see deviation 7 |
 
 ---
 
@@ -214,6 +228,18 @@ differ by `φ_ext`, but they are *not interchangeable*: in the handout's coordin
 is the potential the eigenstates are actually solved in. Mixing the two is a real bug that happened
 here and cost a factor of nine in model accuracy — `Findings_and_Corrections.md` #1.
 
+**2b. `V0 <-> E_J` is not a sign slip - the mapping cannot close at nonzero flux.**
+*(sharpened 2026-08-30 after checking the scqubits source and the fluxonium literature.)*
+The handout's classical form `H = p^2/2m + 0.5*m*w^2*x^2 - V0*cos(kx)` centres **both** terms on
+`x = 0`. The fluxonium centres the harmonic term on `phi = 0` and displaces the cosine by `phi_ext`,
+so no single change of variable aligns both. Following the handout's own `x = phi - phi_ext` leaves
+the mapping wrong by **11.89 E_C**; keeping `x = phi` with `V0 = -E_J` reproduces the potential
+**exactly** (0.0000 E_C), which is what the notebooks do. The mapping is exact only at `phi_ext = 0`,
+and the handout recommends `phi_ext = pi`. This is the same root cause as deviation 1 - the two
+coordinate conventions on p.7/p.8(a) versus p.8(b) are two symptoms of it, not separate slips.
+*Ask which he wants reported; the physics is unaffected either way because the notebooks take the
+potential from `fluxonium.potential(...)`.*
+
 **2. The Poincaré section condition.** The handout suggests recording crossings with `p₂ > 0`. With
 momentum coupling the crossing direction is `dx₂/dt = p₂/m + λp₁`, which does **not** share the sign
 of `p₂`. Filtering on `p₂ > 0` admitted 3.2% of crossings in the wrong direction (158 of 4,971 when reproduced) and smeared two
@@ -248,3 +274,19 @@ play in an exported deck, so the slide points at `movies/` instead.
 > **This is worth a sentence in the meeting.** Not because it is a gap — it isn't — but because
 > "everything with a figure is in the deck; the two reflection-only sub-tasks are in the notebook"
 > is a better answer than being asked and having to work it out live.
+
+**7. `fig_c3_prediction_vs_true.png` is in the notebook but no longer on a slide** *(2026-08-30)*.
+Task 1(d) asks for the predicted trajectory plotted against the true one, and that figure is exactly
+that — it stays in the notebook as the sub-task's direct deliverable. The slide that used to carry it
+now carries `fig_c3_which_curve_is_truth.png` instead, whose **panel (b) is the same plot** and which
+additionally shows the classical gap beside it and the residual magnified 186×.
+
+The reason for the swap is that the original figure was actively confusing in the meeting: shown next
+to Component 2's fluxonium figures it read as a contradiction — one figure saying classical and
+quantum disagree, the other saying they agree — and neither said which curve was ground truth. The
+replacement answers that in a single slide while still satisfying the sub-task.
+
+> **The check that caught this.** `final_test.py` §3b diffs the notebook's figures against the
+> filenames in `build_deck.js`, and it flagged this orphan the moment the slide was swapped — the
+> intended behaviour. The exception is recorded here rather than being silenced in the check, so the
+> next run still reports 21 of 22 and this entry explains the one.

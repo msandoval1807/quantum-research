@@ -66,8 +66,7 @@ function takeaway(s, t, y, h) {
     { x: 1.15, y: y + 0.12, w: 11.0, h: h - 0.24, fontFace: SANS, fontSize: 12.5, valign: "top", margin: 0 });
 }
 // Speaker notes. Two lines per slide: what the picture literally is, and why the slide
-// exists. These show in Presenter View. The long-form version is Slide_by_Slide.md
-// (OneDrive only) — keep the two consistent if either changes.
+// exists. These show in Presenter View while presenting.
 const NOTES = {};
 function note(s, key) { if (NOTES[key]) s.addNotes(NOTES[key]); }
 
@@ -109,24 +108,30 @@ function divider(label, big, sub) {
 }
 function CADCFC_SAFE() { return "CADCFC"; }
 // three or four big stat callouts in a row
-function statSlide(eb, ti, stats, tk, nk, th) {
+// `sub` is an optional line between title and cards. It exists because the baselines slide
+// failed in front of the PI: four numbers with four unfamiliar names, and nothing on the
+// slide saying these are deliberately-simple yardsticks rather than four things I built.
+function statSlide(eb, ti, stats, tk, nk, th, sub) {
   const s = pres.addSlide();
   eyebrow(s, eb); title(s, ti);
+  if (sub) s.addText(sub, { x: 0.9, y: 1.90, w: 11.5, h: 0.66, fontFace: SANS, fontSize: 12.5,
+                            color: MUTED, valign: "top", margin: 0 });
+  const dy = sub ? 0.34 : 0;   // keeps the takeaway bar clear of the footer at y = 7.0
   const n = stats.length, gap = 0.3, w = (11.5 - gap * (n - 1)) / n;
   stats.forEach((st, i) => {
     const x = 0.9 + i * (w + gap);
-    s.addShape(pres.ShapeType.roundRect, { x, y: 2.3, w, h: 2.5, fill: { color: st.hi ? MINT : CARD },
+    s.addShape(pres.ShapeType.roundRect, { x, y: 2.3 + dy, w, h: 2.5, fill: { color: st.hi ? MINT : CARD },
                                            line: { color: st.hi ? TEAL : CARD }, rectRadius: 0.06 });
-    s.addText(st.value, { x: x + 0.15, y: 2.5, w: w - 0.3, h: 0.95, fontFace: SERIF,
+    s.addText(st.value, { x: x + 0.15, y: 2.5 + dy, w: w - 0.3, h: 0.95, fontFace: SERIF,
                           fontSize: st.value.length > 7 ? 30 : 38, bold: true,
                           color: st.hi ? DEEP : NAVY, align: "center", margin: 0 });
-    s.addText(st.label.toUpperCase(), { x: x + 0.15, y: 3.5, w: w - 0.3, h: 0.32, fontFace: SANS,
+    s.addText(st.label.toUpperCase(), { x: x + 0.15, y: 3.5 + dy, w: w - 0.3, h: 0.32, fontFace: SANS,
                                         fontSize: 10.5, bold: true, color: st.hi ? DEEP : TEAL,
                                         align: "center", charSpacing: 1, margin: 0 });
-    s.addText(st.note, { x: x + 0.15, y: 3.85, w: w - 0.3, h: 0.85, fontFace: SANS, fontSize: 11,
+    s.addText(st.note, { x: x + 0.15, y: 3.85 + dy, w: w - 0.3, h: 0.85, fontFace: SANS, fontSize: 11,
                          color: MUTED, align: "center", valign: "top", margin: 0 });
   });
-  takeaway(s, tk, 5.15, th);
+  takeaway(s, tk, 5.15 + dy, th);
   note(s, nk); chrome(s); return s;
 }
 
@@ -150,10 +155,10 @@ Object.assign(NOTES, {
   fluxdyn: "*** MOST IMPORTANT SLIDE. SLOW DOWN. ***\nLOOKING AT: classical and quantum, same start, plotted against time. They agree until t~0.7, then the quantum one loses amplitude.\nWHY: everything in Act 3 exists because of this gap. If these curves stayed together there'd be nothing to learn.\nTHE EXPLANATION: Ehrenfest says d<p>/dt = the AVERAGE OF THE FORCE. The classical equation uses the FORCE AT THE AVERAGE POSITION. Those agree only if the force is a straight line — i.e. only for a parabola. The fluxonium's force has a sine in it, and <sin phi> is not sin<phi>. So these averages obey NO classical equation.\nThat one fact explains why slide 18 agreed exactly, why this one doesn't, and why the network has anything to learn.\nALSO: this is where the coordinate-convention bug was — classical and quantum written half a flux quantum apart.",
   sweep: "LOOKING AT: five starting phases, one well across the barrier to the other. The MIDDLE panel is the striking one.\nOn the barrier top the classical point sweeps a figure-eight through both wells; the quantum packet splits and stays put.\nWHY: visual climax of Act 2 — same initial condition, completely different answers. That gap is what Component 3 must learn.",
   losscurve: "LOOKING AT: purple = error on data it learned from. Blue = error on data it has NEVER seen (the honest score). Red dotted = where I used to stop (150). Grey dashed = where blue actually bottoms out (1610).\nWHY: shows the model is properly trained now, and how badly the old version under-trained.\nHE WILL ASK: 'the gap got worse, 1.7x to 4.5x — isn't that overfitting?' ANSWER: partly, but validation itself improved 6.4x at the same time. Gap widening while the honest score improves is the expected trade.\nThe spikes are the optimizer; they recover and never beat the minimum.",
-  prediction: "LOOKING AT: grey dotted = the classical input the network was given. Blue = the true quantum answer. Red dashed = the prediction.\nThe red sits on the BLUE, not on the grey.\nWHY: 'does it work' on a trajectory never seen in training. It learned the correction, not a copy.",
+  prediction: "*** THIS SLIDE ANSWERS THE QUESTION HE ASKED LAST TIME: how do I know what is real? ***\nSAY THIS FIRST: the blue curve is the truth in both left panels. It comes from solving the Schrodinger equation and never from the model, so the model cannot flatter it.\nTHEN: both panels are the SAME window with the SAME blue curve. Only what it is compared against changes. (a) vs the classical INPUT: a visibly different loop, 1.067 rad away. (b) vs the model OUTPUT: no visible gap.\nTHAT is why Component 2 and Component 3 look like they contradict each other and do not. Two different gaps, one truth.\n(c) EXISTS BECAUSE A GAP YOU CANNOT SEE IS INDISTINGUISHABLE FROM NO GAP. Subtract (b), plot in milliradians, 186x finer: the error is real and structured, not noise.\nTHE LINK TO THE NEXT SLIDE: panel (a) IS the copy-classical baseline. 1.067 rad is the same number, drawn as a picture instead of quoted. If the network were passing its input through it would score panel (a); it scores panel (b).\nIF ASKED whether this is a lucky trajectory: it is the MEDIAN of the held-out set. Best / median / worst are 1.8 / 4.3 / 20.9 mrad.",
   nullresult: "LOOKING AT: error vs how far the packet started from the well bottom. Four FLAT lines.\nPhysics says this should slope up. It doesn't.\nWHY: THIRD CORRECTION, and the subtlest.\nTWO STEPS: (1) I first titled this 'error grows with distance' because that's what I expected and saw; measuring it gave rho=0.08, p=0.56 — no trend, so I retitled. (2) But 'no trend' wasn't the story either: the barrier is 2.85 rad away and I only sampled to 1.0 — a third of the way. The breakdown region was never in my data.\nSAY: a null from a measurement that couldn't have detected the effect is not evidence of absence.",
   breakdown: "*** THE HEADLINE RESULT ***\nLOOKING AT: same axes as the last slide but the lines now clearly RISE. Shaded band on the left = the entire range the previous slide covered (which is why it saw nothing). Dashed line right = the barrier top.\nWHY: this is what the whole project was building toward.\nTWO NUMBERS: the network's error climbs 5.2x (rho=+0.40, p=0.0016). Copy-classical climbs 2.4x (rho=+0.86) — and THAT one isn't about my model at all, it's the size of the quantum correction itself growing. A direct measurement of where classical and quantum part company.\nNUANCE: the network degrades fastest in relative terms while staying most accurate — its advantage is biggest where the physics is easiest.\nIF ASKED about numerics out there: checked, not assumed — bigger basis agrees to 8e-7 rad.",
-  baselines: "LOOKING AT: four boxes, same measurement in all four — typical error in radians on the SAME 60 held-out trajectories. Smaller is better.\ncopy-classical 1.067 = predict nothing, hand back the classical input; its error IS the size of the quantum correction, so it is the floor.\nk-NN 0.077 = copy the most similar training trajectory. Linear regression 0.026 = the best possible STRAIGHT-LINE map. MLP 0.0057 = the network.\nWHY: last time I reported a number with nothing to compare it to, which is not a result.\nSAY THIS BEFORE HE DOES: the comparison that matters is 4.5x over LINEAR REGRESSION, not 186x over copying. Inside one well the motion is near-harmonic and the harmonic map really IS linear (slide 14), so a straight-line fit already gets most of the way.\nIF ASKED how solid: a different random split moves the MLP number ~12%, so do not defend the last digit.",
+  baselines: "*** THIS SLIDE DID NOT LAND LAST TIME. LEAD WITH THE FRAMING, NOT THE NUMBERS. ***\nOPEN WITH THIS, BEFORE ANY NUMBER: 'Only the last box is a neural network. The other three are deliberately dumb methods I ran on the identical task, so that my number has a scale. They are yardsticks, not things I am proposing.'\nTHEN: same job for all four \u2014 given a classical trajectory, predict the quantum one. Same 60 held-out trajectories. Radians. Lower is better.\nTHEN walk left to right: 1.067 = hand the input straight back, no model at all (this number IS the size of the quantum correction \u2014 how wrong you are ignoring quantum mechanics). 0.077 = reuse the answer from the most similar training case. 0.026 = one straight-line formula, no training. 0.0057 = the trained network.\nWHY THE SLIDE EXISTS: last time I reported a loss number with nothing to compare it against, which is not a result.\nSAY THIS BEFORE HE DOES: the comparison that counts is 4.5x over the STRAIGHT-LINE FIT, not 186x over copying. Inside one well the motion is near-harmonic, and for a harmonic potential the classical->quantum map really IS linear (slide 18) \u2014 so a straight line already gets most of the way. The network's job is the nonlinear remainder.\nIF HE ASKS FOR THE STANDARD NAMES: box 2 is k-nearest-neighbours (k=1), box 3 is ordinary least-squares linear regression, box 4 is a multi-layer perceptron - 2 hidden layers, ReLU. I kept them off the slide deliberately; the plain descriptions are what made it readable.\nIF ASKED how solid: a different random split moves the MLP number ~12%, so do not defend the last digit.",
   openq: "Two to lead with: (1) is the model learning physics or interpolating? Linear regression reaching 0.026 makes that sharper — most of the in-well map is trivially linear. (2) Should the target be a trajectory at all, or something with no classical analogue like the tunnelling splitting?\nCLOSE on the italic line: which fluxonium property is actually worth predicting for real device design. That is genuinely his call and it shapes the next month.",
   verification: "LOOKING AT: three checks against things with exact answers — spectrum vs formula, energy conservation, basis-size cross-check.\nWHY: the credibility slide, and where all three corrections are listed together.\nTHE LINE TO LAND: none of the three errors raised an error message. The code ran fine and the figures looked plausible every time. A figure is a picture, not a measurement.",
 });
@@ -364,23 +369,26 @@ figureSlide("Component 3 · Task 1(a–d)",
 ], "losscurve", "h₁ = ReLU(W₁A + b₁)   h₂ = ReLU(W₂h₁ + b₂)   B̂ = W₃h₂ + b₃");
 
 /* ======================= 20 — held-out prediction ======================= */
-figureSlide("Component 3 · Task 1(d) — held-out",
-  "On held-out data the predicted quantum path follows the true one, not the classical input.",
-  "fig_c3_prediction_vs_true.png", [
-  "One validation trajectory, un-standardized back into physical units.",
-  "Grey dotted is the classical input A; blue is the true quantum target B; red dashed is the prediction.",
-  "The prediction sits on the quantum curve, so the network learned the correction — not a copy of its input.",
-  "Physically consistent pairs are what make this learnable — mismatched pairs did 9× worse.",
-], "prediction");
+wideSlide("Component 3 · Task 1(d) — which curve is the truth?",
+  "Component 2 and Component 3 measure two different gaps against the same truth: 1.067 rad vs 0.0057.",
+  "fig_c3_which_curve_is_truth.png",
+  "Blue is the quantum truth in both left panels — it comes from solving the Schrödinger equation and never from the model. " +
+  "(a) is the gap Component 2 exists to measure: the classical input sits on a visibly different loop, 1.067 rad away. " +
+  "(b) is the same trajectory against the network's prediction, in the identical window — no visible gap. " +
+  "(c) subtracts (b) and plots the difference in milliradians, 186× finer, so the error is shown to be real and structured rather than assumed. " +
+  "The trajectory is the median of the held-out set, not the best. Panel (a) is also the copy-classical baseline drawn as a picture: 1.067 rad is exactly what the next slide quotes.",
+  "prediction");
 
 /* ======================= 21 — the baselines (NEW) ======================= */
-statSlide("Component 3 · Beyond the brief — baselines",
-  "The MLP beats all three honest baselines — but linear regression is the one that matters.",
-  [{ value: "1.067", label: "Copy-classical", note: "hand back the classical input unchanged" },
-   { value: "0.077", label: "k-NN (k = 1)", note: "look up the closest training trajectory" },
-   { value: "0.026", label: "Linear regression", note: "best straight-line map, solved exactly" },
-   { value: "0.0057", label: "MLP", hi: true, note: "the trained network" }],
-  "RMS error in ⟨φ̂⟩ (radians) on the same 60 held-out trajectories. Beating copy-classical 186× shows the network reconstructs the quantum correction rather than passing its input through. But inside one well the motion is near-harmonic, and the harmonic classical→quantum map genuinely is linear — so a least-squares fit with no training loop already reaches 0.026. The honest headline is 4.5× over linear regression, not 186× over copying.", "baselines");
+statSlide("Component 3 · Beyond the brief — compared to what?",
+  "Only the last of these four is a neural network. The other three exist to give its score a scale.",
+  [{ value: "1.067", label: "No model at all", note: "Hand the classical trajectory straight back, unchanged" },
+   { value: "0.077", label: "Nearest neighbour", note: "Reuse the answer from the most similar training case" },
+   { value: "0.026", label: "Straight-line fit", note: "One least-squares formula. No training of any kind" },
+   { value: "0.0057", label: "Neural network", hi: true, note: "The trained model — 1610 epochs, early stopped" }],
+  "Left to right, the methods get more capable and the error falls. The first number is the size of the quantum correction itself — how wrong you are ignoring quantum mechanics entirely. The last comparison is the one that counts: a straight-line fit already reaches 0.026, because inside a single well the motion is near-harmonic and the harmonic classical→quantum map really is linear. The network's job is only the nonlinear remainder, so the honest headline is 4.5× over a straight line — not 186× over copying.",
+  "baselines", 1.20,
+  "On its own, \"validation MSE = 1.47e-4\" cannot be judged — so I ran three deliberately simple methods on the identical task: given a classical trajectory, predict the quantum one, scored on the same 60 held-out trajectories, in radians. Yardsticks, not models I am proposing. Lower is better.");
 
 /* ======================= 22 — the null (NEW) ======================= */
 figureSlide("Component 3 · Beyond the brief — a null result",

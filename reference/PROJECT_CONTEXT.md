@@ -45,25 +45,18 @@ cheap to compute       expensive to compute     predicts the expensive
 
 ## 3. Repository layout
 
-Canonical repo: **`C:\Users\galli\quantum-research`** (this is the git repo — commit from here).
-**What is deliberately NOT in this repo** (it is shared with the group on GitHub, so everything here
-is something the PI can read):
+This repository holds everything needed to reproduce the work: the three notebooks, the shared
+helper modules they import, the assignment handouts, and the companion documentation. Generated
+artifacts (`figures/`, `data/`, `movies/`) are committed as well, so the results can be read without
+re-running anything — each notebook also regenerates them from a fresh kernel.
 
-| Excluded | Why |
-|---|---|
-| `CLAUDE.md`, `.claude/`, `.cursor/`, copilot instructions | AI-tooling files. **Physically absent, not merely gitignored** — the `.gitignore` entries are only a backstop. |
-| `reference/WORKING_PREFERENCES.md` | How I like to be worked with — not something the group needs. |
-| `reference/Session_Context.md` | Handoff notes between working sessions. |
-| `Assignment 1/slides/Meeting_Script.md` | My speaking notes for the meeting. |
-| `Assignment 1/slides/Slide_by_Slide.md` | What each slide shows and why it is in the deck. |
-| The textbook and lecture-note PDFs | Copyrighted; cite page and equation numbers instead. |
+**New here?** Start with [`SETUP.md`](../SETUP.md) to get the environment running, then read the
+notebooks in order: Component 1, Component 2, Component 3. `Code_Walkthrough_Components_1_to_3.md`
+explains every cell, and `Classical_and_Quantum_Mechanics_Study_Guide.md` covers the physics from
+first principles for readers without a formalism background.
 
-All of these live in the OneDrive folder only. Everything in the repo is mirrored to OneDrive; the
-reverse is not true. **The project's own AI/ML content is not "AI tooling"** — Component 3 is the
-research deliverable and belongs here.
-
-A **copy** of the Assignment 1 deliverables also lives in OneDrive at
-`C:\Users\galli\OneDrive\Documents\Research Internship\Quantum Research Internship\` (NOT the git repo; kept in sync manually).
+A working copy of the Assignment 1 deliverables is also kept outside the repo for drafting; the repo
+is the canonical version and is the one to read.
 
 ```
 quantum-research/
