@@ -1731,7 +1731,15 @@ winner alone:
   training loop reaches 0.026 rad. That makes sense from the physics: trajectories starting inside
   one well stay close to harmonic, and the *harmonic* classical→quantum map really is linear
   (§4.11 — for a harmonic potential Ehrenfest is exact). So the network's real job is the
-  **nonlinear remainder**, and the fair claim is that it improves on linear regression by **4.5×**.
+  **nonlinear remainder**, and the fair claim is that it improves on linear regression by **4.5×**
+  — *on RMS*.
+
+  **Why that qualifier is not pedantry.** RMS squares the errors before averaging them, so one bad
+  case pulls it a long way above the typical case. Plotting every held-out trajectory separately
+  shows the straight-line fit's RMS sitting **3.6× above its own median**, while the network's sits
+  only **1.3×** above. On a *typical* trajectory the network is **1.7×** better; on the *worst* it is
+  **6.3×** better. Two models can share an RMS and behave completely differently, and for deciding
+  whether to trust one, that difference is the whole story.
 - **k-NN being worst of the three learned methods says something too.** Pure interpolation between
   240 stored examples is not enough, and it gets *worse* as `k` grows. The map is smooth and worth
   fitting rather than looking up, and the MLP is not merely memorizing training rows.

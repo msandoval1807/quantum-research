@@ -1611,7 +1611,13 @@ score(lin_pred * B_std + B_mean, "linear regression")
   straight-line fit recovers most of the map. That makes physical sense: inside one well the motion
   is nearly harmonic, and the harmonic classical→quantum map really is linear. So the network's real
   job is the *nonlinear remainder*, and the honest claim for the MLP is that it beats linear
-  regression by 4.5×.
+  regression by 4.5× **on RMS**.
+
+  That qualifier matters, and the error-distribution figure is what exposed it. RMS squares before
+  averaging, so it sits above the typical case by however far the tail pulls it: the straight-line
+  fit's RMS is **3.6× its own median**, the network's only **1.3×**. Compare medians instead and the gap is
+  **1.7×**; compare worst cases and it is **6.3×**. The network's real advantage is that it **fails less
+  badly**, which a single number cannot show.
 
 **Baseline 3 — k-nearest-neighbours.**
 ```python

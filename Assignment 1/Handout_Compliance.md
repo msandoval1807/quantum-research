@@ -148,8 +148,8 @@ thing on page 8. Everything in the table above is assigned; everything below is 
 | Perceptually uniform colormaps | viridis / plasma throughout. **One deliberate exception:** the Wigner plots use the diverging `RdBu_r`, because that data is *signed* and the sign is the whole point; a sequential map would hide it |
 | Font sizes legible when scaled to a slide | Set once in `shared/group_plot_style.py` |
 | **Annotate key features directly on the figures** | **[added 2026-08-13]** — see the deviation note below |
-| Slides: one idea per slide, full-sentence takeaway titles | Yes, all 29 |
-| Slides: Context → Results → Open questions | Slides 2, 3–27, 28–29 |
+| Slides: one idea per slide, full-sentence takeaway titles | Yes, all 30 |
+| Slides: Context → Results → Open questions | Slides 2, 3–28, 29–30 |
 | Slides: every sub-task with a figure appears in the deck | 21 of 22 — one deliberate exception, see deviation 7 |
 
 ---
@@ -286,7 +286,7 @@ to Component 2's fluxonium figures it read as a contradiction — one figure say
 quantum disagree, the other saying they agree — and neither said which curve was ground truth. The
 replacement answers that in a single slide while still satisfying the sub-task.
 
-> **The check that caught this.** `final_test.py` §3b diffs the notebook's figures against the
+> **The check that caught this.** `tests/test_compliance.py::test_no_figure_is_orphaned_from_the_deck` diffs the notebook's figures against the
 > filenames in `build_deck.js`, and it flagged this orphan the moment the slide was swapped — the
 > intended behaviour. The exception is recorded here rather than being silenced in the check, so the
 > next run still reports 21 of 22 and this entry explains the one.

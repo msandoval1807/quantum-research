@@ -121,7 +121,7 @@ That one command checks four independent things: the numerical solver against th
 solution, energy conservation over several periods, the Wigner colour-scale invariant, and the
 quantum spectrum against `Eₙ = ℏω(n+½)`. **If it prints PASS, your environment is correct.**
 
-If it fails, see [Troubleshooting](#8-troubleshooting).
+If it fails, see [Troubleshooting](#9-troubleshooting).
 
 ---
 
@@ -172,7 +172,61 @@ plotting code.
 
 ---
 
-## 8. Troubleshooting
+## 8. Verifying the work
+
+Setup gives you an environment that runs. This section is about checking the *results* — useful
+before trusting a number, and essential after changing anything.
+
+```powershell
+pytest
+```
+
+**51 tests, about six seconds.** They do not re-run the notebooks (Component 3 alone takes ~11
+minutes); they recompute the physics from scratch and inspect the committed outputs.
+
+| File | Checks |
+|---|---|
+| `tests/test_physics.py` | Every physical quantity, recomputed independently — the parameter mapping identities, the well minimum and barrier height, the tunnelling doublet, the harmonic spectrum against `Eₙ = ℏω(n+½)`, energy conservation, and the Poincaré crossing condition |
+| `tests/test_shared.py` | The `shared/` helpers directly — `[x̂,p̂] = iℏ`, Hermiticity, that the analytic momentum really is `m·dx/dt`, and the closed-form spectrum |
+| `tests/test_deck.py` | That the exported PDF has one page per slide, that no content runs under the footer, and that the speaking notes still cover every slide |
+| `tests/test_compliance.py` | That all 30 handout sub-tasks still have a visible header, that every notebook is fully executed, that every figure has a caption and reaches a slide, and that each headline number appears in a notebook's own captured output |
+
+**Two deliberate design choices**, both of which exist because of a specific past failure:
+
+- **Derivatives are taken numerically, never by hand.** An earlier audit hand-derived `dU/dφ`, got a
+  sign wrong, and reported four failures against code that was correct. A verification script is code
+  and deserves the same scepticism as the code it verifies.
+- **The handout's coordinate error is pinned as a test.** `test_handout_mapping_is_exact_only_at_zero_flux`
+  asserts that following the handout's own substitution is off by `2·E_J` at the recommended flux
+  point. It is there so nobody "corrects" the working convention back to the broken one.
+
+### When a test fails
+
+Read what it compares. Roughly half the suite checks one artifact against a *different* one — the
+notebooks against the handout, the figures against the deck generator, the prose against executed
+output. Those are the ones that catch real drift, and a failure usually means two things that should
+agree no longer do, not that the physics is wrong.
+
+`test_quoted_numbers_trace_back_to_executed_output` is the one to take most seriously: it means a
+number written in prose is no longer a number the code produces.
+
+### Where the detail lives
+
+| Document | What it holds |
+|---|---|
+| [`Assignment 1/Handout_Compliance.md`](Assignment%201/Handout_Compliance.md) | Every handout requirement mapped to where it is satisfied, plus the deliberate deviations and the reasoning for each |
+| [`Assignment 1/Findings_and_Corrections.md`](Assignment%201/Findings_and_Corrections.md) | Every error found in review, how it was caught, and what it changed. **Read this before trusting any number.** |
+| `tests/` | The audit itself, as runnable checks. Every recomputed quantity sits beside its claimed value in `test_physics.py`; the 30 extracted requirements are asserted in `test_compliance.py`. A prose snapshot of these numbers used to live in `AUDIT_CHECKLIST.md` and was deleted — it duplicated the two documents above and had already drifted out of sync with them |
+
+### What the suite does not cover
+
+It does not re-execute the notebooks, so it cannot catch a change that breaks a cell without changing
+its stored output. After editing notebook code, run **Kernel → Restart Kernel and Run All Cells** and
+then `pytest` — in that order.
+
+---
+
+## 9. Troubleshooting
 
 **`ModuleNotFoundError: No module named 'oscillator'`**
 Step 4 was skipped, or you created the `.pth` while a different environment was active. Confirm the
@@ -218,11 +272,12 @@ behind it — spectra, energy conservation, the well positions — should reprod
 
 ---
 
-## 9. Quick reference
+## 10. Quick reference
 
 ```powershell
 .venv\Scripts\Activate.ps1                 # activate (every new terminal)
 python shared\oscillator.py                # verify the environment -> PASS
 jupyter lab                                # open the notebooks
+pytest                                     # verify the results (51 tests, ~6 s)
 cd "Assignment 1\slides"; node build_deck.js   # rebuild the slide deck
 ```

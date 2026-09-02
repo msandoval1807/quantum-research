@@ -68,25 +68,52 @@ map in the *opposite direction* (spectrum → parameters, where we do classical 
 observables). Worth raising with the PI as the natural "what would a next project look like" answer,
 and as evidence the fluxonium-plus-ML pairing is an active area rather than a toy exercise.
 
-**Read this one to name the breakdown result.**
+**Read these to name the breakdown result — carefully.**
 
-The Component 3 finding — error climbing 5.2× as the packet is launched further toward the
-barrier — has an established name in the literature: the **Ehrenfest time**, the timescale on which
-a localized wave packet spreads enough to feel the nonlinearity of the potential, after which
-expectation values stop following the classical equations. See Zurek and Paz on chaotic systems
-(arXiv:nlin/0012048) and the integrable-system treatment in arXiv:1801.06389.
+Ehrenfest's theorem says the quantum average obeys
 
-**Why this is worth the effort:** right now the breakdown is written up as an empirical observation
-with a Spearman ρ attached. Framed as Ehrenfest-time physics it becomes a *measurement of a known
-quantity* in a new system, which is a materially stronger claim and connects directly to the
-Ehrenfest-condition argument already used on the fluxonium-dynamics slide.
+    d⟨p̂⟩/dt = ⟨ − dV/dφ ⟩      (the AVERAGE of the force over the packet)
 
-> **Caveat, stated because it has not been checked.** The Ehrenfest-time literature is largely built
-> around *chaotic* systems, where the timescale goes as `ln(1/ℏ)` and is set by the Lyapunov
-> exponent. Component 1 established that this system is **regular, not chaotic** (λ_max ≈ 0.005 at
-> every energy tested). The integrable-system reference is the relevant one, and whether the standard
-> scaling carries over here is an open question — not something to assert in the meeting. Ask the PI
-> rather than claim it.
+while the classical equation uses
+
+    dp/dt = − dV/dφ at ⟨φ̂⟩      (the force AT the average position)
+
+Those agree only when the force is a straight line across the width of the packet — exactly
+true for a parabola, which is why the harmonic figures in Component 2 match perfectly. Once the
+potential curves over the packet's width, ⟨F⟩ ≠ F(⟨φ̂⟩) and the quantum average obeys no classical equation
+at all. **That failure is the mechanism behind the Component 3 breakdown.**
+
+There are two independent routes to it, and the distinction matters:
+
+| route | how it fails | our measurement |
+|---|---|---|
+| **spatial** | the packet sits where the potential bends | error vs. distance toward the barrier: **5.2× rise**, ρ = +0.399, p = 0.0016 |
+| **temporal** | any packet spreads until it feels the bend | error vs. time step within a trajectory: ρ = +0.152, **p = 0.350** |
+
+**The Ehrenfest *time* is specifically the temporal route** — the timescale on which spreading destroys
+the correspondence. Our data shows no temporal trend, so over this evolution window the packet is
+**not** spreading enough for that mechanism to operate.
+
+> **Do not call this result an Ehrenfest-time measurement.** An earlier draft of this section did,
+> and it was wrong on two counts. First, the effect measured is spatial, not temporal, and the
+> temporal one came back null once it was actually tested (`fig_c3_error_distribution.png`, panel b).
+> Second, the Ehrenfest-time literature is built around *chaotic* systems, where the scale goes as
+> `ln(1/ħ)` and is set by the Lyapunov exponent — and Component 1 established that this system is
+> **regular** (λ_max ≈ 0.005 at every energy tested). Two independent reasons the label does not fit.
+
+**What to say instead.** Describe the mechanism rather than borrowing the name:
+
+> "Prediction error grows 5.2× as the packet is launched closer to the barrier, which is where
+> Ehrenfest's condition breaks down: the potential stops being locally harmonic, so the quantum
+> average stops following any classical trajectory. Over our evolution window the error shows no
+> growth with time, so this is about *where* the packet sits, not how long it has evolved."
+
+That second sentence is worth keeping — it rules out the obvious alternative explanation, and it is
+measured rather than assumed.
+
+**Where the literature is still useful.** Zurek and Paz (arXiv:nlin/0012048) for the chaotic case
+and the integrable-system treatment in arXiv:1801.06389 both develop the ⟨F⟩ ≠ F(⟨φ̂⟩) argument
+properly, which is the part that transfers. Read them for the mechanism, not for a name to attach.
 
 ---
 
@@ -164,7 +191,7 @@ Each stage is a self-contained, presentable weekly update (Context → Results �
 - Carleo, Cranmer, Hack, Kording, et al. — *Machine learning and the physical sciences*, Rev. Mod. Phys. 91, 045002 (2019). [arXiv:1903.10563](https://arxiv.org/abs/1903.10563)
 - Kung, Liu, Lee, Hu, Chang, Chen, Wang, Lin — *Automatic Characterization of Fluxonium Superconducting Qubit Parameters with Deep Transfer Learning* (2025). [arXiv:2503.12099](https://arxiv.org/abs/2503.12099) — ML predicting E_J, E_C, E_L from fluxonium spectra; 95.6% accuracy.
 - *Scalable Parameter Design for Superconducting Quantum Circuits with Graph Neural Networks* (2024). [arXiv:2411.16354](https://arxiv.org/abs/2411.16354) — GNNs for circuit parameter design at ~870 qubits; adjacent, not central.
-- Ehrenfest-time / quantum-classical correspondence breakdown: [arXiv:nlin/0012048](https://arxiv.org/abs/nlin/0012048) (chaotic systems), [arXiv:1801.06389](https://arxiv.org/abs/1801.06389) (integrable systems — the relevant one here, since Component 1 found no chaos).
+- Quantum-classical correspondence breakdown (the ⟨F⟩ ≠ F(⟨φ̂⟩) mechanism, **not** a name for our result): [arXiv:nlin/0012048](https://arxiv.org/abs/nlin/0012048) (chaotic systems), [arXiv:1801.06389](https://arxiv.org/abs/1801.06389) (integrable systems — the relevant one here, since Component 1 found no chaos).
 - Background methods (widely used, for the architecture upgrades in §3.2–3.3): Fourier Neural Operator (Li et al., arXiv:2010.08895), Neural ODE (Chen et al., arXiv:1806.07366), Hamiltonian Neural Networks (Greydanus et al., arXiv:1906.01563).
 
 *Note: this is a living document. As the group's tools (scqubits, PyTorch) and the tasks evolve, add findings here or split into topic files under `reference/`.*

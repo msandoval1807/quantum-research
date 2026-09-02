@@ -136,6 +136,7 @@ function statSlide(eb, ti, stats, tk, nk, th, sub) {
 }
 
 Object.assign(NOTES, {
+  errordist: "*** THIS IS THE FIGURE HE ASKED FOR. Lead with why it exists, not with the numbers. ***\nSAY FIRST: 'You asked for a way to see the errors rather than take one number on faith. Every dot on the left is one held-out trajectory.'\nHOW TO READ IT: bar = middle 50%, vertical line = median, black diamond = the RMS quoted on the previous slide. A diamond sitting well right of the line means that model has a tail.\nTHE FINDING, SAY IT PLAINLY: the straight-line fit's RMS is 3.6x its own median; the network's is 1.3x. So the 4.5x headline is driven by linear regression's bad cases, not its typical ones. Typical: 1.7x better. Worst case: 6.3x better.\nWHY THAT IS A BETTER CLAIM, NOT A WEAKER ONE: 'fails less badly' is what you actually want from a surrogate model. A single RMS cannot show this - it squares before averaging, so one bad case moves it.\nRIGHT PANEL: does the error grow as the trajectory runs? No - rho = +0.15, p = 0.35. Worth saying because a spreading wave packet is the obvious worry, and this measures it rather than assuming.\nIF HE ASKS why quote RMS at all: it is the standard and it is what the loss optimises. The point is not to drop it, but to show its shape.",
   pipeline: "LOOKING AT: three boxes = the three components, left to right. Classical data in, quantum data as the answer, ML learning the map.\nWHY: this is the map for the whole talk. Without it the next 20 slides are unconnected figures.\nSAY: classical is cheap, quantum is expensive, the model predicts the second from the first. NOT quantum computing speeding up AI — the reverse.",
   contours: "LOOKING AT: phase space. Horizontal = position, vertical = momentum. Colour = total energy. White rings = constant energy.\nA point on this plot is the complete state: where it is AND how it moves. Energy conservation means it can only travel ALONG a ring, never hop between them.\nWHY: establishes that a classical state is a point living on a ring.",
   singletraj: "LOOKING AT: blue = what my code computed. White dashed = the exact pen-and-paper answer, sitting on top of it. Red dot = the start.\nWHY: proof-of-correctness, not physics. Later systems have no exact answer, so the solver has to be verified HERE.\nNUMBER: agrees to 6.7e-9.",
@@ -391,6 +392,14 @@ statSlide("Component 3 · Beyond the brief — compared to what?",
   "On its own, \"validation MSE = 1.47e-4\" cannot be judged — so I ran three deliberately simple methods on the identical task: given a classical trajectory, predict the quantum one, scored on the same 60 held-out trajectories, in radians. Yardsticks, not models I am proposing. Lower is better.");
 
 /* ======================= 22 — the null (NEW) ======================= */
+wideSlide("Component 3 · Beyond the brief — what the errors look like",
+  "The 4.5× headline is real, but it measures consistency more than typical accuracy.",
+  "fig_c3_error_distribution.png",
+  "Asked for after the last meeting: a way to SEE the errors rather than take one number on faith. Left: every held-out trajectory is a dot, all four models on one log axis — the bar is the middle 50%, the line the median, the diamond the RMS quoted on the previous slide. " +
+  "The straight-line fit's RMS sits 3.6× above its own median because it has a long tail; the network's sits 1.3× above. So on a TYPICAL trajectory the network is only 1.7× better (0.0071 → 0.0043 rad), but on the WORST one it is 6.3× better (0.1307 → 0.0209). Its real advantage is that it fails less badly. " +
+  "Right: error against position within a trajectory — no growth (Spearman ρ = +0.15, p = 0.35), so the packet spreading does not degrade the prediction over this window.",
+  "errordist");
+
 figureSlide("Component 3 · Beyond the brief — a null result",
   "My first attempt to find the breakdown found nothing — because it could not have.",
   "fig_c3_error_vs_distance.png", [
